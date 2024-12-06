@@ -10,3 +10,4 @@ hooks:
   postprovision: 
     run: scripts/postprovision.sh
     interactive: true
+    continueOnError: false

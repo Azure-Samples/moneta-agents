@@ -32,7 +32,7 @@ from azure.search.documents.indexes.models import (
     IndexProjectionMode
 )
 
-from azure.storage.blob import NativeBlobSoftDeleteDeletionDetectionPolicy
+from azure.search.documents.indexes.models import NativeBlobSoftDeleteDeletionDetectionPolicy
 
 load_dotenv(override=True)  # Take environment variables from .env
 

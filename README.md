@@ -56,8 +56,8 @@ azd up
 ### Data indexing 
 You can index your data located under the data folder by executing first the `data_upload.py` and then `data_indexing.py`:
 ```bash
-python3 ./backend/data_upload.py
-python3 ./backend/data_indexing.py
+python3 ./scripts/data_upload.py
+python3 ./scripts/data_indexing.py
 ```
 Each subfolder of the data folder will be a seperate index. 
 If you are using managed identity make sure to assign the following roles to the AI Search: Cognitive Service OpenAI user, Storage Blob Data Reader.
@@ -86,15 +86,6 @@ AZ_REG_APP_CLIENT_ID=<Your Azure Registered App Client ID>
 AZ_TENANT_ID=<Your Azure Tenant ID>
 WEB_REDIRECT_URI=<Your Redirect URI>
 ```
-
-- adjust your docker container names / registries in frontend/deploy_frontend_acr.sh 
-- chmod u+x frontend/deploy_frontend_acr.sh 
--./frontend/deploy_frontend_acr.sh 
-
-### Authorizing CosmosDB DB Role to your principal (local deployment)
-- get your MSFT principalId (from entra) 
-- modify the backend/cosmosdb_cli_role.sh with your principalId and cosmosdb account and resource group
-- run the shell script
 
 ### Running the App (local)
 

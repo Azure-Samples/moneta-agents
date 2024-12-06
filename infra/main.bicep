@@ -45,6 +45,9 @@ param azureOpenaiKey string
 @description('Azure OpenAI Model')
 param azureOpenaiDeploymentName string
 
+@description('Azure OpenAI embedding model deployment name')
+param azureOpenaiEmbeddingModelName string = 'text-embedding-3-large'
+
 @description('Azure OpenAI API Version')
 param azureOpenaiApiVersion string = '2024-06-01'
 
@@ -268,7 +271,6 @@ resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' = 
     name: 'basic'
   }
   properties: {
-
     replicaCount: 1
     partitionCount: 1
     hostingMode: 'default'
@@ -609,9 +611,32 @@ output AI_SEARCH_PRINCIPAL_ID string = identity.properties.principalId
 output AZURE_OPENAI_API_VERSION string = azureOpenaiApiVersion
 output AZURE_OPENAI_DEPLOYMENT_NAME string = azureOpenaiDeploymentName
 output AZURE_OPENAI_ENDPOINT string = azureOpenaiEndpoint
+output AZURE_OPENAI_MODEL string = azureOpenaiDeploymentName
 output AZURE_PRINCIPAL_ID string = azurePrincipalId
 output BLOB_ACCOUNT_URL string = storageAccount.properties.primaryEndpoints.blob
 output FUNCTION_APP_NAME string = functionAppName
+output COSMOSDB_ACCOUNT_NAME string = cosmosDbAccountName
+output COSMOSDB_ENDPOINT string = cosmosDbAccount.properties.documentEndpoint
+output COSMOSDB_DATABASE_NAME string = cosmosDbDatabaseName
+output COSMOSDB_CONTAINER_CLIENT_NAME string = cosmosDbCRMContainerName
+output COSMOSDB_CONTAINER_FSI_BANK_USER_NAME string = cosmosDbBankingContainerName
+output COSMOSDB_CONTAINER_FSI_INS_USER_NAME string = cosmosDbInsuranceContainerName
+output AZURE_OPENAI_EMBEDDING_MODEL_NAME string = azureOpenaiEmbeddingModelName
+output AZURE_OPENAI_EMBEDDING_DIMENSIONS string = '1536'
+output CHUNK_SIZE string = '2000'
 
-// TODO: avoid outputting the key by using users's identity when running locally
+output AI_SEARCH_CIO_INDEX_NAME string = 'moneta-cio-vector'
+output AI_SEARCH_CIO_SEMANTIC_CONFIGURATION string = 'default'
+output AI_SEARCH_FUNDS_INDEX_NAME string = 'moneta-funds-vector'
+output AI_SEARCH_FUNDS_SEMANTIC_CONFIGURATION string = 'default'
+
+output AI_SEARCH_INS_INDEX_NAME string = aiSearchInsIndexName
+output AI_SEARCH_INS_SEMANTIC_CONFIGURATION string = aiSearchInsSemanticConfiguration
+
+output AI_SEARCH_VECTOR_FIELD_NAME string = aiSearchVectorFieldName
+
+// TODO: avoid outputting keys by using users's identity when running locally
 output AZURE_OPENAI_KEY string = azureOpenaiKey 
+output AZURE_SEARCH_KEY string = aiSearchAdminKey
+output BLOB_CONNECTION_STRING string = 'ResourceId=${blobService.id}'
+

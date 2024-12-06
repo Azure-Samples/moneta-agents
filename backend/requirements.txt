@@ -5,7 +5,8 @@ requests_html
 requests
 azure-cosmos
 pandas
-azure-search-documents
+# Required for NativeBlobSoftDeleteDeletionDetectionPolicy
+azure-search-documents==11.6.0b8 
 azure-identity
 yfinance
 azure-functions
