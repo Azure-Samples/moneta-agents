@@ -6,6 +6,7 @@
 
 # Name of the application.
 name: moneta
-
-
-
+hooks:
+  postprovision: 
+    run: scripts/postprovision.sh
+    interactive: true

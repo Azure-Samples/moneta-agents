@@ -8,8 +8,20 @@
       "location": {
         "value": "${AZURE_LOCATION}"
       },
-      "principalId": {
+      "azurePrincipalId": {
         "value": "${AZURE_PRINCIPAL_ID}"
+      },
+      "azureOpenaiEndpoint": {
+        "value": "${AZURE_OPENAI_ENDPOINT}"
+      },
+      "azureOpenaiKey": {
+        "value": "${AZURE_OPENAI_KEY}"
+      },
+      "azureOpenaiDeploymentName": {
+        "value": "${AZURE_OPENAI_DEPLOYMENT_NAME}"
+      },
+      "azureOpenaiApiVersion": {
+        "value": "${AZURE_OPENAI_API_VERSION}"
       }
     }
 }

@@ -26,12 +26,13 @@ from azure.search.documents.indexes.models import (
     FieldMapping,
     SearchIndexerDataContainer,
     SearchIndexerDataSourceConnection,
-    NativeBlobSoftDeleteDeletionDetectionPolicy,
     SearchIndexerIndexProjection,
     SearchIndexerIndexProjectionSelector,
     SearchIndexerIndexProjectionsParameters,
     IndexProjectionMode
 )
+
+from azure.storage.blob import NativeBlobSoftDeleteDeletionDetectionPolicy
 
 load_dotenv(override=True)  # Take environment variables from .env
 

@@ -10,11 +10,10 @@ from dotenv import load_dotenv
 load_dotenv(override=True)  # Take environment variables from .env
 
 # Variables
-blob_connection_string = os.environ["BLOB_CONNECTION_STRING"]
 account_url = os.getenv("BLOB_ACCOUNT_URL")
-account_key = AzureKeyCredential(os.getenv("BLOB_ACCOUNT_KEY")) if os.getenv("BLOB_ACCOUNT_KEY") else DefaultAzureCredential()
+credentials = AzureKeyCredential(os.getenv("BLOB_ACCOUNT_KEY")) if os.getenv("BLOB_ACCOUNT_KEY") else DefaultAzureCredential()
 # Create the BlobServiceClient object
-blob_service_client = BlobServiceClient(account_url, credential=account_key)
+blob_service_client = BlobServiceClient(account_url, credential=credentials)
 
 
 # Functions for sanitizing and uploading files
@@ -50,16 +49,17 @@ def upload_files_from_directory(directory_path: str):
             if not container_client.exists():
                 container_client.create_container()
             for file_name in os.listdir(folder_path):
+                print(f"Uploading file: {folder_name}/{file_name}...")
                 file_path = os.path.join(folder_path, file_name)
                 if os.path.isfile(file_path):
                     blob_client = BlobClient(
                         account_url=account_url,
                         container_name=folder_name,
                         blob_name=file_name,
-                        credential=account_key
+                        credential=credentials
                     )
                     with open(file_path, "rb") as data:
                         blob_client.upload_blob(data, overwrite=True)
-
+    print("Upload complete.")
 # Upload files from the data directory
 upload_files_from_directory(data_directory_path)

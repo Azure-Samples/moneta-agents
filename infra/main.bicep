@@ -36,17 +36,17 @@ param appInsightsLocation string = location
 
 // New parameters for Azure OpenAI
 @description('Azure OpenAI Endpoint')
-param AZURE_OPENAI_ENDPOINT string
+param azureOpenaiEndpoint string
 
 @description('Azure OpenAI Key')
 @secure()
-param AZURE_OPENAI_KEY string
+param azureOpenaiKey string
 
 @description('Azure OpenAI Model')
-param AZURE_OPENAI_DEPLOYMENT_NAME string
+param azureOpenaiDeploymentName string
 
 @description('Azure OpenAI API Version')
-param AZURE_OPENAI_API_VERSION string = '2024-06-01'
+param azureOpenaiApiVersion string = '2024-06-01'
 
 // Optional parameters to override AI Search settings
 @description('Override AI Search Endpoint (optional)')
@@ -55,6 +55,9 @@ param overrideAiSearchEndpoint string = ''
 @description('Override AI Search Key (optional)')
 @secure()
 param overrideAiSearchKey string = ''
+
+@description('Principal ID of the user runing the deployment')
+param azurePrincipalId string
 
 // Variables for AI Search index names and configurations
 var aiSearchCioIndexName = 'cio-index'
@@ -246,14 +249,26 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2022-05-01'
   name: 'default'
 }
 
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'aiSearchService'
+  location: location
+}
+
 // AI Search Service (Azure Cognitive Search)
-resource aiSearchService 'Microsoft.Search/searchServices@2020-08-01' = if (empty(overrideAiSearchEndpoint)) {
+resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' = if (empty(overrideAiSearchEndpoint)) {
   name: toLower('search${uniqueString(resourceGroup().id)}')
   location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${identity.id}': {}
+    }
+  }
   sku: {
-    name: 'free'
+    name: 'basic'
   }
   properties: {
+
     replicaCount: 1
     partitionCount: 1
     hostingMode: 'default'
@@ -352,20 +367,20 @@ resource functionApp 'Microsoft.Web/sites@2022-03-01' = {
           value: cosmosDbCRMContainerName
         }
         {
-          name: 'AZURE_OPENAI_ENDPOINT'
-          value: AZURE_OPENAI_ENDPOINT
+          name: 'azureOpenaiEndpoint'
+          value: azureOpenaiEndpoint
         }
         {
-          name: 'AZURE_OPENAI_KEY'
-          value: AZURE_OPENAI_KEY
+          name: 'azureOpenaiKey'
+          value: azureOpenaiKey
         }
         {
           name: 'AZURE_OPENAI_MODEL'
-          value: AZURE_OPENAI_DEPLOYMENT_NAME
+          value: azureOpenaiDeploymentName
         }
         {
-          name: 'AZURE_OPENAI_API_VERSION'
-          value: AZURE_OPENAI_API_VERSION
+          name: 'azureOpenaiApiVersion'
+          value: azureOpenaiApiVersion
         }
         {
           name: 'AI_SEARCH_ENDPOINT'
@@ -489,7 +504,7 @@ resource cosmosDbDataContributorRoleAssignment 'Microsoft.DocumentDB/databaseAcc
 param appServicePlanName string = '${namePrefix}-plan'
 
 @description('Name of the Web App for Streamlit')
-param webAppName string = '${namePrefix}-agents'
+param webAppName string = '${namePrefix}-agents-${uniqueString(resourceGroup().id)}'
 
 // Streamlit App Service Plan
 resource streamlitServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
@@ -558,3 +573,45 @@ resource streamlitWebApp 'Microsoft.Web/sites@2022-03-01' = {
   kind: 'app,linux'
   tags: commonTags
 }
+
+import * as role from './role.bicep'
+
+resource userDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, azurePrincipalId, 'Storage Blob Data Contributor')
+  scope: storageAccount
+  properties: {
+    principalId: azurePrincipalId
+    roleDefinitionId: role.definitionId('Storage Blob Data Contributor')
+  }
+}
+
+resource userSearchIndexDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(aiSearchService.id, azurePrincipalId, 'Search Index Data Contributor')
+  scope: aiSearchService
+  properties: {
+    principalId: azurePrincipalId
+    roleDefinitionId: role.definitionId('Search Index Data Contributor')
+  }
+}
+
+resource userSearchServiceContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(aiSearchService.id, azurePrincipalId, 'Search Service Contributor')
+  scope: aiSearchService
+  properties: {
+    principalId: azurePrincipalId
+    roleDefinitionId: role.definitionId('Search Service Contributor')
+  }
+}
+
+
+output AI_SEARCH_ENDPOINT string = aiSearchEndpoint
+output AI_SEARCH_PRINCIPAL_ID string = identity.properties.principalId
+output AZURE_OPENAI_API_VERSION string = azureOpenaiApiVersion
+output AZURE_OPENAI_DEPLOYMENT_NAME string = azureOpenaiDeploymentName
+output AZURE_OPENAI_ENDPOINT string = azureOpenaiEndpoint
+output AZURE_PRINCIPAL_ID string = azurePrincipalId
+output BLOB_ACCOUNT_URL string = storageAccount.properties.primaryEndpoints.blob
+output FUNCTION_APP_NAME string = functionAppName
+
+// TODO: avoid outputting the key by using users's identity when running locally
+output AZURE_OPENAI_KEY string = azureOpenaiKey 
