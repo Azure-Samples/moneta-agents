@@ -587,6 +587,15 @@ resource userDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignme
   }
 }
 
+resource aisearchDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, identity.id, 'Storage Blob Data Contributor')
+  scope: storageAccount
+  properties: {
+    principalId: identity.properties.principalId
+    roleDefinitionId: role.definitionId('Storage Blob Data Contributor')
+  }
+}
+
 resource userSearchIndexDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(aiSearchService.id, azurePrincipalId, 'Search Index Data Contributor')
   scope: aiSearchService
@@ -608,6 +617,7 @@ resource userSearchServiceContributorRoleAssignment 'Microsoft.Authorization/rol
 
 output AI_SEARCH_ENDPOINT string = aiSearchEndpoint
 output AI_SEARCH_PRINCIPAL_ID string = identity.properties.principalId
+output AI_SEARCH_IDENTITY_ID string = identity.id
 output AZURE_OPENAI_API_VERSION string = azureOpenaiApiVersion
 output AZURE_OPENAI_DEPLOYMENT_NAME string = azureOpenaiDeploymentName
 output AZURE_OPENAI_ENDPOINT string = azureOpenaiEndpoint
@@ -638,5 +648,5 @@ output AI_SEARCH_VECTOR_FIELD_NAME string = aiSearchVectorFieldName
 // TODO: avoid outputting keys by using users's identity when running locally
 output AZURE_OPENAI_KEY string = azureOpenaiKey 
 output AZURE_SEARCH_KEY string = aiSearchAdminKey
-output BLOB_CONNECTION_STRING string = 'ResourceId=${blobService.id}'
+output AZURE_STORAGE_ACCOUNT_ID string = storageAccount.id
 
