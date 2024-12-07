@@ -34,8 +34,6 @@ REDIRECT_URI = os.getenv("WEB_REDIRECT_URI")
 DISABLE_LOGIN = os.getenv('DISABLE_LOGIN')
 FUNCTION_APP_KEY = os.getenv('FUNCTION_APP_KEY')
 
-
-
 st.markdown("""
     <style>
     .big-font {
@@ -372,6 +370,7 @@ def send_message_to_backend(user_input, conversation_dict):
     try:
         url = f'{BACKEND_URL}/api/http_trigger?code={FUNCTION_APP_KEY}'
         response = requests.post(url, json=payload)
+        response.raise_for_status()
         assistant_response = response.json()
         st.session_state.conversations[st.session_state.current_conversation_index]['name'] = assistant_response['chat_id']
         
@@ -391,6 +390,7 @@ def send_message_to_backend(user_input, conversation_dict):
 
     except requests.exceptions.RequestException as e:
         st.error(f"Error: {e}")
+        logging.error(e, exc_info=True)
         return {"role": "assistant", "name": "System", "content": "Sorry, an error occurred while processing your request."}
 
 def start_new_conversation():
