@@ -37,6 +37,7 @@ az role assignment create -o table \
     --role "Cognitive Services OpenAI User" \
     --scope "$openai_resource_id"
 
+# TODO: move this one to Bicep
 echo "Assigning role on Cosmos DB resource..."
 az cosmosdb sql role assignment create \
     --resource-group "$AZURE_RESOURCE_GROUP" \

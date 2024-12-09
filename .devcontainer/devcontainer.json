@@ -35,4 +35,3 @@
     // Add the Python packages that you use to requirements.txt
     "postCreateCommand": "sudo apt update && pip install --upgrade pip && pip install -r frontend/requirements.txt && pip install -r backend/requirements.txt"
   }
-  
