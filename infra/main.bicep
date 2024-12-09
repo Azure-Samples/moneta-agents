@@ -1,3 +1,38 @@
+/* -------------------------------------------------------------------------- */
+/*                                 PARAMETERS                                 */
+/* -------------------------------------------------------------------------- */
+
+@minLength(1)
+@maxLength(64)
+@description('Name of the the environment which is used to generate a short unique hash used in all resources.')
+param environmentName string
+
+@description('Additional tags to be applied to provisioned resoureces')
+param tags object = {}
+
+@description('Principal ID of the user runing the deployment')
+param azurePrincipalId string
+
+/* ---------------------------- Shared Resources ---------------------------- */
+
+@maxLength(50)
+@description('Name of the container registry to deploy. If not specified, a name will be generated. The name is global and must be unique within Azure. The maximum length is 50 characters.')
+param containerRegistryName string = ''
+
+/* --------------------------------- Backend -------------------------------- */
+
+@maxLength(32)
+@description('Name of the frontend container app to deploy. If not specified, a name will be generated. The maximum length is 32 characters.')
+param backendContainerAppName string = ''
+
+@description('Set if the frontend container app already exists.')
+param backendAppExists bool = false
+
+
+
+/* -------------------------------------------------------------------------- */
+
+
 var functionAppDockerImage = 'DOCKER|moneta.azurecr.io/moneta-ai-backend:v1.1.6' 
 var webappAppDockerImage = 'DOCKER|moneta.azurecr.io/moneta-ai-frontend:v1.1.6'
 
@@ -59,8 +94,29 @@ param overrideAiSearchEndpoint string = ''
 @secure()
 param overrideAiSearchKey string = ''
 
-@description('Principal ID of the user runing the deployment')
-param azurePrincipalId string
+
+
+/* -------------------------------------------------------------------------- */
+/*                                  VARIABLES                                 */
+/* -------------------------------------------------------------------------- */
+
+// Load abbreviations from JSON file
+var abbreviations = loadJsonContent('./abbreviations.json')
+
+@description('Generate a unique token to make global resource names unique')
+var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
+
+@description('Name of the environment with only alphanumeric characters. Used for resource names that require alphanumeric characters only')
+var alphaNumericEnvironmentName = replace(replace(environmentName, '-', ''), ' ', '')
+
+/* --------------------- Globally Unique Resource Names --------------------- */
+
+var _containerRegistryName = !empty(containerRegistryName) ? containerRegistryName : take('${abbreviations.containerRegistryRegistries}${take(alphaNumericEnvironmentName, 35)}${resourceToken}', 50)
+
+/* ----------------------------- Resource Names ----------------------------- */
+
+var _backendContainerAppName = !empty(backendContainerAppName) ? backendContainerAppName : take('${abbreviations.appContainerApps}backend-${environmentName}', 32)
+
 
 // Variables for AI Search index names and configurations
 var aiSearchCioIndexName = 'cio-index'
@@ -72,9 +128,138 @@ var aiSearchInsSemanticConfiguration = 'ins-semantic-config'
 var aiSearchVectorFieldName = 'contentVector'
 
 // Define common tags  
-var commonTags = {  
+var commonTags = union({  
+ 'azd-env-name': environmentName
   solution: 'moneta-agentic-gbb-ai-1.0'    
+}, tags)
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                                  RESOURCES                                 */
+/* -------------------------------------------------------------------------- */
+
+module backendAppIdentity './modules/app/identity.bicep' = {
+  name: 'backendAppIdentity'
+  scope: resourceGroup()
+  params: {
+    location: location
+    identityName: _backendContainerAppName
+  }
 }
+
+module registry 'modules/app/registry.bicep' = {
+  name: 'registry'
+  scope: resourceGroup()
+  params: {
+    location: location
+    identityName: backendAppIdentity.outputs.name
+    tags: tags
+    name: '${abbreviations.containerRegistryRegistries}${resourceToken}'
+  }
+}
+
+module backendApp 'modules/app/containerapp.bicep' = {
+  name: 'app'
+  scope: resourceGroup()
+  params: {
+    name: _backendContainerAppName
+    tags: tags
+    logAnalyticsWorkspaceName: logAnalytics.name
+    identityId: backendAppIdentity.outputs.identityId
+    containerRegistryName: registry.outputs.name
+    exists: backendAppExists
+    env: {
+      AZURE_CLIENT_ID: backendAppIdentity.outputs.clientId
+      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
+      AZURE_OPENAI_ENDPOINT: azureOpenaiEndpoint
+      AZURE_OPENAI_DEPLOYMENT: azureOpenaiDeploymentName
+      AZURE_OPENAI_API_VERSION: azureOpenaiApiVersion
+      AZURE_OPENAI_KEY: azureOpenaiKey
+      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenaiEmbeddingModelName
+      AZURE_OPENAI_EMBEDDING_DIMENSIONS: '1536'
+      AI_SEARCH_ENDPOINT: aiSearchEndpoint
+      AI_SEARCH_KEY: aiSearchAdminKey // TODO: avoid outputting keys by using users's identity or managed identities
+
+      // TODO: complete and double check existing entries !!!
+    }
+  }
+}
+
+resource backendAppStorageBlobDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataContributor')
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe') // Storage Blob Data Contributor
+    principalId: backendAppIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource backendAppStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataOwner')
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b') // Storage Blob Data Owner
+    principalId: backendAppIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource backendAppStorageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(storageAccount.id, _backendContainerAppName, 'StorageQueueDataContributor')
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88') // Storage Queue Data Contributor
+    principalId: backendAppIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource backendAppStorageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(storageAccount.id, _backendContainerAppName, 'StorageAccountContributor')
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab') // Storage Account Contributor
+    principalId: backendAppIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Cosmos DB Role Assignments
+resource cosmosDbRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: cosmosDbAccount
+  name: 'b24988ac-6180-42a0-ab88-20f7382dd24c' // Built-in role: Cosmos DB Account Reader Role
+}
+
+resource cosmosDbRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbRoleDefinition.id)
+  scope: cosmosDbAccount
+  properties: {
+    principalId: backendAppIdentity.outputs.principalId
+    roleDefinitionId: cosmosDbRoleDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource cosmosDbDataContributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2021-04-15' existing = {
+  parent: cosmosDbAccount
+  name: '00000000-0000-0000-0000-000000000002' // Built-in Data Contributor Role
+}
+
+resource cosmosDbDataContributorRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2021-04-15' = {
+  parent: cosmosDbAccount
+  name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbDataContributorRoleDefinition.id)
+  properties: {
+    roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
+    principalId: backendAppIdentity.outputs.principalId
+    scope: cosmosDbAccount.id
+  }
+}
+
+
+
+/* -------------------------------------------------------------------------- */
 
 // Log Analytics Workspace
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {  
@@ -284,223 +469,6 @@ var aiSearchAdminKey = empty(overrideAiSearchKey) ? listAdminKeys(aiSearchServic
 // Set AI Search endpoint
 var aiSearchEndpoint = empty(overrideAiSearchEndpoint) ? 'https://${aiSearchService.name}.search.windows.net' : overrideAiSearchEndpoint
 
-// Function App with Managed Identity
-resource functionApp 'Microsoft.Web/sites@2022-03-01' = {
-  name: functionAppName
-  location: location
-  identity: {
-    type: 'SystemAssigned'
-  }
-  kind: 'functionapp'
-  properties: {
-    serverFarmId: servicePlan.id
-    httpsOnly: true
-    siteConfig: {
-      pythonVersion: '3.11'
-      linuxFxVersion: functionAppDockerImage
-      alwaysOn: true
-      appSettings: [ 
-        {
-          name: 'AzureWebJobsStorage__credential'
-          value: 'managedidentity'  
-        } 
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'AzureWebJobsFeatureFlags'
-          value: 'EnableWorkerIndexing'
-        }
-        {
-          name: 'AzureWebJobsStorage__serviceUri'
-          value: 'https://${storageAccount.name}.blob.core.windows.net'  
-        }  
-        {
-          name: 'AzureWebJobsStorage__blobServiceUri'
-          value: 'https://${storageAccount.name}.blob.core.windows.net'  
-        }
-        {
-          name: 'AzureWebJobsStorage__queueServiceUri'
-          value: 'https://${storageAccount.name}.queue.core.windows.net'  
-        }
-        {
-          name: 'AzureWebJobsStorage__tableServiceUri'
-          value: 'https://${storageAccount.name}.table.core.windows.net'  
-        }              
-        {
-          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
-          value: 'false'
-        }
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'python'
-        }
-        {
-          name: 'FUNCTIONS_WORKER_PROCESS_COUNT'
-          value: '1'
-        }
-        {
-          name: 'WEBSITE_MAX_DYNAMIC_APPLICATION_SCALE_OUT'
-          value: '1'
-        }
-        {
-          name: 'DOCKER_REGISTRY_SERVER_URL'
-          value: 'https://index.docker.io'
-        }              
-        {
-          name: 'COSMOSDB_ENDPOINT'
-          value: cosmosDbAccount.properties.documentEndpoint
-        }
-        {
-          name: 'COSMOSDB_DATABASE_NAME'
-          value: cosmosDbDatabaseName
-        }
-        {
-          name: 'COSMOSDB_CONTAINER_FSI_BANK_USER_NAME'
-          value: cosmosDbBankingContainerName
-        }
-        {
-          name: 'COSMOSDB_CONTAINER_FSI_INS_USER_NAME'
-          value: cosmosDbInsuranceContainerName
-        }
-        {
-          name: 'COSMOSDB_CONTAINER_CLIENT_NAME'
-          value: cosmosDbCRMContainerName
-        }
-        {
-          name: 'azureOpenaiEndpoint'
-          value: azureOpenaiEndpoint
-        }
-        {
-          name: 'azureOpenaiKey'
-          value: azureOpenaiKey
-        }
-        {
-          name: 'AZURE_OPENAI_MODEL'
-          value: azureOpenaiDeploymentName
-        }
-        {
-          name: 'azureOpenaiApiVersion'
-          value: azureOpenaiApiVersion
-        }
-        {
-          name: 'AI_SEARCH_ENDPOINT'
-          value: aiSearchEndpoint
-        }
-        {
-          name: 'AI_SEARCH_KEY'
-          value: aiSearchAdminKey
-        }
-        {
-          name: 'AI_SEARCH_CIO_INDEX_NAME'
-          value: aiSearchCioIndexName
-        }
-        {
-          name: 'AI_SEARCH_CIO_SEMANTIC_CONFIGURATION'
-          value: aiSearchCioSemanticConfiguration
-        }
-        {
-          name: 'AI_SEARCH_FUNDS_INDEX_NAME'
-          value: aiSearchFundsIndexName
-        }
-        {
-          name: 'AI_SEARCH_FUNDS_SEMANTIC_CONFIGURATION'
-          value: aiSearchFundsSemanticConfiguration
-        }
-        {
-          name: 'AI_SEARCH_INS_INDEX_NAME'
-          value: aiSearchInsIndexName
-        }
-        {
-          name: 'AI_SEARCH_INS_SEMANTIC_CONFIGURATION'
-          value: aiSearchInsSemanticConfiguration
-        }
-        {
-          name: 'AI_SEARCH_VECTOR_FIELD_NAME'
-          value: aiSearchVectorFieldName
-        }
-      ]
-    }
-  }
-  tags: commonTags
-}
-
-// Role assignments for the Function App's managed identity
-resource functionAppStorageBlobDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(functionApp.id, storageAccount.id, 'StorageBlobDataContributor')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe') // Storage Blob Data Contributor
-    principalId: functionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource functionAppStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(functionApp.id, storageAccount.id, 'StorageBlobDataOwner')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b') // Storage Blob Data Owner
-    principalId: functionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource functionAppStorageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(functionApp.id, storageAccount.id, 'StorageQueueDataContributor')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88') // Storage Queue Data Contributor
-    principalId: functionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource functionAppStorageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(functionApp.id, storageAccount.id, 'StorageAccountContributor')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab') // Storage Account Contributor
-    principalId: functionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Cosmos DB Role Assignments
-resource cosmosDbRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  scope: cosmosDbAccount
-  name: 'b24988ac-6180-42a0-ab88-20f7382dd24c' // Built-in role: Cosmos DB Account Reader Role
-}
-
-resource cosmosDbRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(subscription().id, cosmosDbAccount.id, functionApp.id, cosmosDbRoleDefinition.id)
-  scope: cosmosDbAccount
-  properties: {
-    principalId: functionApp.identity.principalId
-    roleDefinitionId: cosmosDbRoleDefinition.id
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    functionApp
-  ]
-}
-
-resource cosmosDbDataContributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2021-04-15' existing = {
-  parent: cosmosDbAccount
-  name: '00000000-0000-0000-0000-000000000002' // Built-in Data Contributor Role
-}
-
-resource cosmosDbDataContributorRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2021-04-15' = {
-  parent: cosmosDbAccount
-  name: guid(cosmosDbAccount.id, functionApp.id, cosmosDbDataContributorRoleDefinition.id)
-  properties: {
-    roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
-    principalId: functionApp.identity.principalId
-    scope: cosmosDbAccount.id
-  }
-}
-
 // App Service Plan for Streamlit
 @description('Name of the App Service Plan for Streamlit')
 param appServicePlanName string = '${namePrefix}-plan'
@@ -538,7 +506,7 @@ resource streamlitWebApp 'Microsoft.Web/sites@2022-03-01' = {
         }
         {
           name: 'FUNCTION_APP_URL'
-          value: 'https://${functionApp.properties.defaultHostName}'
+          value: backendApp.outputs.uri
         }
         {
           name: 'DOCKER_REGISTRY_SERVER_URL'
@@ -563,11 +531,14 @@ resource streamlitWebApp 'Microsoft.Web/sites@2022-03-01' = {
         {
           name: 'WEB_REDIRECT_URI'
           value: ''
-        } 
+        }
+        // TODO: handle authentication of the frontend to the backend app !!!
+        /* 
         {
           name: 'FUNCTION_APP_KEY'
           value: listKeys('${resourceId('Microsoft.Web/sites', functionAppName)}/host/default', '2018-11-01').functionKeys.default
         } 
+        */
       ]
     }
     httpsOnly: true
