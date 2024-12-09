@@ -69,7 +69,7 @@ resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
     configuration: {
       ingress:  {
         external: true
-        targetPort: 80
+        targetPort: 8000
         transport: 'auto'
       }
       registries: [
@@ -78,12 +78,6 @@ resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
           identity: identityId
         }
       ]
-      // secrets: [
-      //   {
-      //       name: 'api-key'
-      //       value: '${openAIService.listKeys().key1}'
-      //   }
-      // ]
     }
     template: {
       containers: [

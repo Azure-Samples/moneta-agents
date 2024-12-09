@@ -7,11 +7,11 @@
 @description('Name of the the environment which is used to generate a short unique hash used in all resources.')
 param environmentName string
 
-@description('Additional tags to be applied to provisioned resoureces')
-param tags object = {}
-
 @description('Principal ID of the user runing the deployment')
 param azurePrincipalId string
+
+@description('Extra tags to be applied to provisioned resources')
+param extraTags object = {}
 
 /* ---------------------------- Shared Resources ---------------------------- */
 
@@ -128,10 +128,10 @@ var aiSearchInsSemanticConfiguration = 'ins-semantic-config'
 var aiSearchVectorFieldName = 'contentVector'
 
 // Define common tags  
-var commonTags = union({  
+var tags = union({  
  'azd-env-name': environmentName
   solution: 'moneta-agentic-gbb-ai-1.0'    
-}, tags)
+}, extraTags)
 
 
 
@@ -164,19 +164,24 @@ module backendApp 'modules/app/containerapp.bicep' = {
   scope: resourceGroup()
   params: {
     name: _backendContainerAppName
-    tags: commonTags
+    tags: tags
     logAnalyticsWorkspaceName: logAnalytics.name
     identityId: backendAppIdentity.outputs.identityId
     containerRegistryName: containerRegistry.outputs.name
     exists: backendAppExists
     serviceName: 'backend'
     env: {
+      AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
+      AI_SEARCH_ENDPOINT: aiSearchEndpoint
+      AI_SEARCH_FUNDS_INDEX_NAME: aiSearchFundsIndexName
+      AI_SEARCH_INS_INDEX_NAME: aiSearchInsIndexName
+      AI_SEARCH_INS_SEMANTIC_CONFIGURATION: aiSearchInsSemanticConfiguration
       AI_SEARCH_KEY: aiSearchAdminKey
-      AZURE_OPENAI_ENDPOINT: azureOpenaiEndpoint
-      AZURE_OPENAI_DEPLOYMENT: azureOpenaiDeploymentName
       AZURE_OPENAI_API_VERSION: azureOpenaiApiVersion
+      AZURE_OPENAI_DEPLOYMENT: azureOpenaiDeploymentName
+      AZURE_OPENAI_ENDPOINT: azureOpenaiEndpoint
       AZURE_OPENAI_KEY: azureOpenaiKey
-      COSMOSDB_CONTAINER_CLIENT_NAME: cosmosDbCRMContainerName //???
+      COSMOSDB_CONTAINER_CLIENT_NAME: cosmosDbCRMContainerName
       COSMOSDB_CONTAINER_FSI_BANK_USER_NAME: cosmosDbBankingContainerName
       COSMOSDB_CONTAINER_FSI_INS_USER_NAME: cosmosDbInsuranceContainerName
       COSMOSDB_DATABASE_NAME: cosmosDbDatabaseName
@@ -185,6 +190,9 @@ module backendApp 'modules/app/containerapp.bicep' = {
 
       // required for container app daprAI
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
+
+      // required for managed identity
+      AZURE_CLIENT_ID: backendAppIdentity.outputs.clientId
     }
   }
 }
@@ -271,7 +279,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
   properties: {  
     retentionInDays: 30  
   }  
-  tags: commonTags
+  tags: tags
 }  
 
 // Application Insights instance
@@ -310,7 +318,7 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
     enableAnalyticalStorage: false
     cors: []
   }
-  tags: commonTags
+  tags: tags
 }
 
 // Cosmos DB Database
@@ -323,7 +331,7 @@ resource cosmosDbDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@20
     }
     options: {}
   }
-  tags: commonTags
+  tags: tags
 }
 
 // Cosmos DB Containers
@@ -350,7 +358,7 @@ resource cosmosDbInsuranceContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDa
     }
     options: {}
   }
-  tags: commonTags
+  tags: tags
 }
 
 resource cosmosDbBankingContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2022-05-15' = {
@@ -376,7 +384,7 @@ resource cosmosDbBankingContainer 'Microsoft.DocumentDB/databaseAccounts/sqlData
     }
     options: {}
   }
-  tags: commonTags
+  tags: tags
 }
 
 resource cosmosDbCRMContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2022-05-15' = {
@@ -402,7 +410,7 @@ resource cosmosDbCRMContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
     }
     options: {}
   }
-  tags: commonTags
+  tags: tags
 }
 
 // Service Plan for Function App
@@ -417,7 +425,7 @@ resource servicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   properties: {
     reserved: true
   }
-  tags: commonTags
+  tags: tags
 }
 
 // Storage Account
@@ -431,7 +439,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   properties: {
     accessTier: 'Hot'
   }
-  tags: commonTags
+  tags: tags
 }
 
 // Blob Service
@@ -463,7 +471,7 @@ resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' = 
     partitionCount: 1
     hostingMode: 'default'
   }
-  tags: commonTags
+  tags: tags
 }
 
 // Get AI Search admin key
@@ -491,7 +499,7 @@ resource streamlitServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   properties: {
     reserved: true
   }
-  tags: commonTags
+  tags: tags
 }
 
 // Streamlit Web App
@@ -547,7 +555,7 @@ resource streamlitWebApp 'Microsoft.Web/sites@2022-03-01' = {
     httpsOnly: true
   }
   kind: 'app,linux'
-  tags: commonTags
+  tags: tags
 }
 
 import * as role from './role.bicep'
@@ -611,7 +619,6 @@ output AZURE_OPENAI_DEPLOYMENT_NAME string = azureOpenaiDeploymentName
 output AZURE_OPENAI_ENDPOINT string = azureOpenaiEndpoint
 output AZURE_OPENAI_MODEL string = azureOpenaiDeploymentName
 output AZURE_PRINCIPAL_ID string = azurePrincipalId
-output BLOB_ACCOUNT_URL string = storageAccount.properties.primaryEndpoints.blob
 output FUNCTION_APP_NAME string = functionAppName
 output COSMOSDB_ACCOUNT_NAME string = cosmosDbAccountName
 output COSMOSDB_ENDPOINT string = cosmosDbAccount.properties.documentEndpoint
@@ -638,3 +645,5 @@ output AZURE_OPENAI_KEY string = azureOpenaiKey
 output AZURE_SEARCH_KEY string = aiSearchAdminKey
 output AZURE_STORAGE_ACCOUNT_ID string = storageAccount.id
 
+output BLOB_CONNECTION_STRING string = 'ResourceId=${blobService.id}'
+output BLOB_ACCOUNT_URL string = storageAccount.properties.primaryEndpoints.blob

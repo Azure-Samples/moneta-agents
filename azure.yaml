@@ -6,6 +6,13 @@
 
 # Name of the application.
 name: moneta
+services:
+  backend:
+    language: python
+    project: src/backend
+    host: containerapp
+    docker:
+      path: ./Dockerfile
 hooks:
   postprovision: 
     run: scripts/postprovision.sh
