@@ -645,5 +645,4 @@ output AZURE_OPENAI_KEY string = azureOpenaiKey
 output AZURE_SEARCH_KEY string = aiSearchAdminKey
 output AZURE_STORAGE_ACCOUNT_ID string = storageAccount.id
 
-output BLOB_CONNECTION_STRING string = 'ResourceId=${blobService.id}'
 output BLOB_ACCOUNT_URL string = storageAccount.properties.primaryEndpoints.blob

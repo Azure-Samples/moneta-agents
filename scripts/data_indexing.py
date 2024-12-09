@@ -26,12 +26,13 @@ from azure.search.documents.indexes.models import (
     FieldMapping,
     SearchIndexerDataContainer,
     SearchIndexerDataSourceConnection,
-    NativeBlobSoftDeleteDeletionDetectionPolicy,
+    SearchIndexerDataUserAssignedIdentity,
     SearchIndexerIndexProjection,
     SearchIndexerIndexProjectionSelector,
     SearchIndexerIndexProjectionsParameters,
     IndexProjectionMode
 )
+from azure.search.documents.indexes.models import NativeBlobSoftDeleteDeletionDetectionPolicy
 
 load_dotenv(override=True)  # Take environment variables from .env
 
@@ -39,7 +40,7 @@ load_dotenv(override=True)  # Take environment variables from .env
 endpoint = os.environ["AI_SEARCH_ENDPOINT"]
 credential = AzureKeyCredential(os.getenv("AZURE_SEARCH_KEY")) if os.getenv("AZURE_SEARCH_KEY") else DefaultAzureCredential()
 
-blob_connection_string = os.environ["BLOB_CONNECTION_STRING"]
+blob_connection_string = f"ResourceId={os.environ["AZURE_STORAGE_ACCOUNT_ID"]}"
 account_url = os.getenv("BLOB_ACCOUNT_URL")
 account_key = AzureKeyCredential(os.getenv("BLOB_ACCOUNT_KEY")) if os.getenv("BLOB_ACCOUNT_KEY") else DefaultAzureCredential()
 azure_openai_endpoint = os.environ["AZURE_OPENAI_ENDPOINT"]
@@ -51,6 +52,8 @@ chuncksize = int(os.getenv("CHUNCK_SIZE", 2000))
 
 # Create the BlobServiceClient object
 blob_service_client = BlobServiceClient(account_url, credential=account_key)
+
+identity = SearchIndexerDataUserAssignedIdentity(resource_id=os.getenv("AI_SEARCH_IDENTITY_ID"))
 
 def list_container_names():
     container_names = []
@@ -75,6 +78,7 @@ for container_name in container_names:
         type="azureblob",
         connection_string=blob_connection_string,
         container=container,
+        identity=identity
         data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy()
     )
     data_source = indexer_client.create_or_update_data_source_connection(data_source_connection)
@@ -130,7 +134,8 @@ for container_name in container_names:
                 parameters=AzureOpenAIVectorizerParameters(
                     resource_url=azure_openai_endpoint,
                     deployment_name=azure_openai_embedding_deployment,
-                    model_name=azure_openai_model_name
+                    model_name=azure_openai_model_name,
+                    auth_identity=identity,
                 ),
             ),
         ],
@@ -181,6 +186,7 @@ for container_name in container_names:
         description="Skill to generate embeddings via Azure OpenAI",  
         context="/document/pages/*",  
         resource_url=azure_openai_endpoint,  
+        auth_identity=identity,
         deployment_name=azure_openai_embedding_deployment,	  
         model_name=azure_openai_model_name,
         dimensions=azure_openai_model_dimensions,
