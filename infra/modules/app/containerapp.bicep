@@ -1,12 +1,19 @@
+@description('Name of the container app')
 param name string
+
 param location string = resourceGroup().location
+
 param tags object = {}
 
-@description('The environment variables for the container in key value pairs')
+@description('Environment variables for the container in key value pairs')
 param env object = {}
 
+@description('Resource ID of the identity to use for the container app')
 param identityId string
-// param identityName string
+
+@description('Name of the service the container app belongs to in azure.yaml')
+param serviceName string
+
 param containerRegistryName string
 
 param logAnalyticsWorkspaceName string
@@ -45,7 +52,6 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2022-10-01'
         sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
       }
     }
-    // daprAIConnectionString: applicationInsights.properties.ConnectionString
     daprAIConnectionString: env.APPLICATIONINSIGHTS_CONNECTION_STRING
   }
 }
@@ -53,7 +59,7 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2022-10-01'
 resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
   name: name
   location: location
-  tags: union(tags, {'azd-service-name':  'app' })
+  tags: union(tags, {'azd-service-name':  serviceName })
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: { '${identityId}': {} }
@@ -69,7 +75,6 @@ resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
       registries: [
         {
           server: '${containerRegistryName}.azurecr.io'
-          // identity: identity.id
           identity: identityId
         }
       ]
@@ -107,5 +112,5 @@ resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
 
 output defaultDomain string = containerAppsEnvironment.properties.defaultDomain
 output name string = app.name
-output uri string = 'https://${app.properties.configuration.ingress.fqdn}'
+output URL string = 'https://${app.properties.configuration.ingress.fqdn}'
 output id string = app.id

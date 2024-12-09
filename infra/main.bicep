@@ -22,10 +22,10 @@ param containerRegistryName string = ''
 /* --------------------------------- Backend -------------------------------- */
 
 @maxLength(32)
-@description('Name of the frontend container app to deploy. If not specified, a name will be generated. The maximum length is 32 characters.')
+@description('Name of the backend container app to deploy. If not specified, a name will be generated. The maximum length is 32 characters.')
 param backendContainerAppName string = ''
 
-@description('Set if the frontend container app already exists.')
+@description('Set if the backend container app already exists.')
 param backendAppExists bool = false
 
 
@@ -148,7 +148,7 @@ module backendAppIdentity './modules/app/identity.bicep' = {
   }
 }
 
-module registry 'modules/app/registry.bicep' = {
+module containerRegistry 'modules/app/registry.bicep' = {
   name: 'registry'
   scope: resourceGroup()
   params: {
@@ -160,28 +160,28 @@ module registry 'modules/app/registry.bicep' = {
 }
 
 module backendApp 'modules/app/containerapp.bicep' = {
-  name: 'app'
+  name: 'backend-container-app'
   scope: resourceGroup()
   params: {
     name: _backendContainerAppName
-    tags: tags
+    tags: commonTags
     logAnalyticsWorkspaceName: logAnalytics.name
     identityId: backendAppIdentity.outputs.identityId
-    containerRegistryName: registry.outputs.name
+    containerRegistryName: containerRegistry.outputs.name
     exists: backendAppExists
+    serviceName: 'backend'
     env: {
-      AZURE_CLIENT_ID: backendAppIdentity.outputs.clientId
-      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
+      AI_SEARCH_KEY: aiSearchAdminKey
       AZURE_OPENAI_ENDPOINT: azureOpenaiEndpoint
       AZURE_OPENAI_DEPLOYMENT: azureOpenaiDeploymentName
       AZURE_OPENAI_API_VERSION: azureOpenaiApiVersion
       AZURE_OPENAI_KEY: azureOpenaiKey
-      AZURE_OPENAI_EMBEDDING_MODEL_NAME: azureOpenaiEmbeddingModelName
-      AZURE_OPENAI_EMBEDDING_DIMENSIONS: '1536'
-      AI_SEARCH_ENDPOINT: aiSearchEndpoint
-      AI_SEARCH_KEY: aiSearchAdminKey // TODO: avoid outputting keys by using users's identity or managed identities
-
-      // TODO: complete and double check existing entries !!!
+      COSMOSDB_CONTAINER_CLIENT_NAME: cosmosDbCRMContainerName //???
+      COSMOSDB_CONTAINER_FSI_BANK_USER_NAME: cosmosDbBankingContainerName
+      COSMOSDB_CONTAINER_FSI_INS_USER_NAME: cosmosDbInsuranceContainerName
+      COSMOSDB_DATABASE_NAME: cosmosDbDatabaseName
+      COSMOSDB_ENDPOINT: cosmosDbAccount.properties.documentEndpoint
+      HANDLER_TYPE: 'semantickernel'
     }
   }
 }
@@ -506,7 +506,7 @@ resource streamlitWebApp 'Microsoft.Web/sites@2022-03-01' = {
         }
         {
           name: 'FUNCTION_APP_URL'
-          value: backendApp.outputs.uri
+          value: backendApp.outputs.URL
         }
         {
           name: 'DOCKER_REGISTRY_SERVER_URL'
@@ -584,6 +584,20 @@ resource userSearchServiceContributorRoleAssignment 'Microsoft.Authorization/rol
     roleDefinitionId: role.definitionId('Search Service Contributor')
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                   OUTPUTS                                  */
+/* -------------------------------------------------------------------------- */
+
+// Outputs are automatically saved in the local azd environment .env file.
+// To see these outputs, run `azd env get-values`,  or `azd env get-values --output json` for json output.
+// To generate your own `.env` file run `azd env get-values > .env`
+// To use set these outputs as environment variables in your shell run `source <(azd env get-values | sed 's/^/export /')`
+
+@description('The endpoint of the container registry.') // necessary for azd deploy
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+
+/* -------------------------------------------------------------------------- */
 
 
 output AI_SEARCH_ENDPOINT string = aiSearchEndpoint
