@@ -3,21 +3,18 @@ name = "moneta-backend"
 version = "0.1.0"
 description = "Backend propject steup for Moneta"
 readme = "README.md"
-requires-python = ">=3.11, <3.12"
+requires-python = ">=3.12, <3.13"
 dependencies = [
     "azure-cosmos>=4.9.0",
-    "azure-functions>=1.21.3",
     "azure-identity>=1.19.0",
     "azure-search-documents>=11.5.2",
     "grpcio-tools>=1.68.1",
-    "lxml-html-clean>=0.4.1",
     "openai>=1.56.2",
-    "pillow>=11.0.0",
     "python-dotenv>=1.0.1",
     "requests>=2.32.3",
-    "requests-html>=0.10.0",
     "semantic-kernel>=1.16.0",
-    "starlette-gzip-request>=0.1.0",
     "ipykernel>=6.29.5",
     "pyyaml>=6.0.2",
+    "fastapi>=0.115.6",
+    "uvicorn>=0.32.1",
 ]

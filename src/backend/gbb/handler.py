@@ -1,14 +1,10 @@
-# handlers.py
 import logging
 import json
 
-# Imports for genai_vanilla_agents
-from genai_vanilla_agents.workflow import Workflow
-from genai_vanilla_agents.conversation import Conversation
-from agents.fsi_insurance.group_chat import create_group_chat_insurance
-from agents.fsi_banking.group_chat import create_group_chat_banking
-
-import os
+from gbb.genai_vanilla_agents.conversation import Conversation
+from gbb.genai_vanilla_agents.workflow import Workflow
+from gbb.agents.fsi_insurance.group_chat import create_group_chat_insurance
+from gbb.agents.fsi_banking.group_chat import create_group_chat_banking
 
 #Vanilla Agents implementation
 class VanillaAgenticHandler:
