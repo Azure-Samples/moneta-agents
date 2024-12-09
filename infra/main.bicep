@@ -182,6 +182,9 @@ module backendApp 'modules/app/containerapp.bicep' = {
       COSMOSDB_DATABASE_NAME: cosmosDbDatabaseName
       COSMOSDB_ENDPOINT: cosmosDbAccount.properties.documentEndpoint
       HANDLER_TYPE: 'semantickernel'
+
+      // required for container app daprAI
+      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
     }
   }
 }
