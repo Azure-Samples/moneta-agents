@@ -1,35 +1,21 @@
 import azure.functions as func
-
-from azure.identity import DefaultAzureCredential
 import json
 import logging
-import openai
 import os
-import sys
-import requests
-
-from pydantic import BaseModel, Field
-
+from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
-load_dotenv()
 
 from conversation_store import ConversationStore
-from genai_vanilla_agents.workflow import Workflow
-from genai_vanilla_agents.conversation import Conversation
-from agents.fsi_insurance.group_chat import create_group_chat_insurance
-from agents.fsi_banking.group_chat import create_group_chat_banking
+from handlers import VanillaAgenticHandler
+from sk.sk_handler import SemanticKernelHandler
 
-
+import asyncio
+load_dotenv()
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 @app.route(route="http_trigger")
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Example usage
-    {"user_id":"rm3","message":"What policy is best to travel to Canada?"}
-
-    """
     logging.info('Empowering RMs - HTTP trigger function processed a request.')
 
     try:
@@ -50,11 +36,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     if not user_id:
         return func.HttpResponse(
-            json.dumps({"error": "<user_id and message> are required!"}),
+            json.dumps({"error": "<user_id> is required!"}),
             status_code=400,
             mimetype="application/json"
         )
-    
+
+    if load_history is not True and not user_message:
+        return func.HttpResponse(
+            json.dumps({"error": "<message> is required when not loading history!"}),
+            status_code=400,
+            mimetype="application/json"
+        )
+
     if not usecase_type:
         return func.HttpResponse(
             json.dumps({"error": "<usecase_type> is required!"}),
@@ -62,21 +55,21 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
 
-    # A helper class that store and retrieve messages by conversation from an Azure Cosmos DB
+    # A helper class that stores and retrieves messages by conversation from an Azure Cosmos DB
     key = DefaultAzureCredential()
 
-    #select use case container 
+    # Select use case container
     if 'fsi_insurance' == usecase_type:
-        container_name=os.getenv("COSMOSDB_CONTAINER_FSI_INS_USER_NAME")
+        container_name = os.getenv("COSMOSDB_CONTAINER_FSI_INS_USER_NAME")
     elif 'fsi_banking' == usecase_type:
-        container_name=os.getenv("COSMOSDB_CONTAINER_FSI_BANK_USER_NAME")
+        container_name = os.getenv("COSMOSDB_CONTAINER_FSI_BANK_USER_NAME")
     else:
         return func.HttpResponse(
             json.dumps({"error": "Use case not recognized/not implemented..."}),
             status_code=400,
             mimetype="application/json"
         )
-    
+
     db = ConversationStore(
         url=os.getenv("COSMOSDB_ENDPOINT"),
         key=key,
@@ -85,92 +78,68 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     )
 
     if not db.read_user_info(user_id):
-        user_data = {'chat_histories': {} }
+        user_data = {'chat_histories': {}}
         db.create_user(user_id, user_data)
 
     user_data = db.read_user_info(user_id)
-    #logging.info(f"user history: {user_data.get('chat_histories')}")
 
-    conversation_history = Conversation(messages=[], variables={})
+    # Decide which handler to use based on environment variable
+    handler_type = 'semantickernel'  # TODO via env var -> Expected values: "vanilla", "semantickernel"
 
-    #if the API was called with load_history, return that and terminate
+    if handler_type == "vanilla":
+        handler = VanillaAgenticHandler(db)
+    elif handler_type == "semantickernel":
+        handler = SemanticKernelHandler(db)
+    else:
+        return func.HttpResponse(
+            json.dumps({"error": "Invalid HANDLER_TYPE"}),
+            status_code=400,
+            mimetype="application/json"
+        )
+
+    try:
+        result = asyncio.run(handler.handle_request(
+            user_id=user_id,
+            chat_id=chat_id,
+            user_message=user_message,
+            load_history=load_history,
+            usecase_type=usecase_type,
+            user_data=user_data
+        ))
+    except Exception as e:
+        logging.error(f"Error in handler: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": "agent-error"}),
+            status_code=500,
+            mimetype="application/json"
+        )
+        
+    status_code = result.get("status_code", 200)
+    print(f"status result = {result}")
+    if status_code != 200:
+        error_message = result.get("error", "Unknown error")
+        return func.HttpResponse(
+            json.dumps({"error": error_message}),
+            status_code=status_code,
+            mimetype="application/json"
+        )
+
+    # If loading history
     if load_history is True:
-        conversation_list = []
-        chat_histories = user_data.get('chat_histories')
-        if chat_histories:
-            logging.info(list(chat_histories.keys()))
-            for chat_id, conversation_history in chat_histories.items():
-                conversation_object = {
-                    "name": chat_id,
-                    "messages": Conversation.from_dict(conversation_history).messages
-                }
-                conversation_list.append(conversation_object)
-        logging.info(f"user history: {json.dumps(conversation_list)}")
+        conversation_list = result.get("data", [])
+        #logging.info(f"conv history= {conversation_list}")
         return func.HttpResponse(
             json.dumps(conversation_list),
             status_code=200,
             mimetype="application/json"
         )
-    
-    #if the API was called with a message, initiate chat
-    if chat_id:
-        # Continue existing chat
-        conversation_data = user_data.get('chat_histories', {}).get(chat_id)
-        logging.info(f"Conversation data={conversation_data}")
-        if conversation_data:
-            conversation_history = Conversation.from_dict(conversation_data)
-        else:
-            return func.HttpResponse(
-                json.dumps({"error": "chat_id not found"}),
-                status_code=404,
-                mimetype="application/json"
-            )
-    else:
-        # Start a new chat
-        chat_id = db.generate_chat_id()
-        conversation_history = Conversation(messages=[], variables={})
-        user_data.setdefault('chat_histories', {})
-        user_data['chat_histories'][chat_id] = conversation_history.to_dict()
-        db.update_user_info(user_id, user_data)
 
-    
-    # See https://microsoft.github.io/autogen/docs/topics/groupchat/resuming_groupchat
-    #select use case group chat
-    if 'fsi_insurance' == usecase_type:
-        team = create_group_chat_insurance(user_message)
-    elif 'fsi_banking' == usecase_type:
-        team = create_group_chat_banking(user_message)
-    
-    history_count = len(conversation_history.messages)
-     
-    workflow = Workflow(askable=team, conversation=conversation_history)
-    run_result = workflow.run(user_message)
-    logging.info(f"run_result = {run_result}")
-    
-    if "agent-error" == run_result:
-        return func.HttpResponse(
-            json.dumps({"chat_id": chat_id, "reply": run_result}),
-            status_code=400,
-            mimetype="application/json"
-        )
-    
-    previous_history = user_data['chat_histories'].get(chat_id)
-    #logging.info(f"\nPrevious history = user_data['chat_histories'][chat_id]: {previous_history}\n")
+    # Otherwise, return the chat_id and reply to the client
+    chat_id = result.get("chat_id")
+    new_messages = result.get("reply", [])
 
-    merged_history = {**previous_history, **workflow.conversation.to_dict()} 
-    user_data['chat_histories'][chat_id] = merged_history
-    
-    #logging.info(f"\nAfter merging history = user_data['chat_histories'][chat_id]: {merged_history}\n")
-    db.update_user_info(user_id, user_data)
-    
-    delta = len(workflow.conversation.messages) - history_count
-    
-    new_messages = workflow.conversation.messages[-delta:]
-
-    # Return the chat_id and reply to the client
     return func.HttpResponse(
         json.dumps({"chat_id": chat_id, "reply": new_messages}),
         status_code=200,
         mimetype="application/json"
     )
-    

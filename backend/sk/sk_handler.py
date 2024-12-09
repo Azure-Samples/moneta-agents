@@ -223,4 +223,4 @@ class SemanticKernelHandler:
         user_data['chat_histories'][chat_id] = {'messages': conversation_messages}
         self.db.update_user_info(user_id, user_data)
 
-        return {"status_code": 200, "chat_id": chat_id, "reply": reply}
+        return {"status_code": 200, "chat_id": chat_id, "reply": [reply]}
