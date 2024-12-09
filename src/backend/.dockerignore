@@ -7,3 +7,4 @@ logs/
 banking/
 local.settings.json
 _pycache_/
+**/__pycache__/

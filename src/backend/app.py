@@ -68,6 +68,9 @@ async def http_trigger(request_body: dict = Body(...)):
   
     # Decide which handler to use based on the HANDLER_TYPE environment variable  
     handler_type = os.getenv("HANDLER_TYPE", "semantickernel")  # Expected values: "vanilla", "semantickernel"  
+    
+    print("-----------------------")
+    print(f"handler_type: {handler_type}")
   
     if handler_type == "vanilla":  
         handler = VanillaAgenticHandler(db)  
@@ -77,6 +80,10 @@ async def http_trigger(request_body: dict = Body(...)):
         raise HTTPException(status_code=400, detail="Invalid HANDLER_TYPE")  
   
     # Handle the request using the appropriate handler  
+    logging.warning(f"---------------------------------")
+    logging.warning(f"Handling request with {handler_type} handler...")
+    logging.warning(f"load_history: {load_history}")
+    
     try:  
         result = await handler.handle_request(
             user_id=user_id,

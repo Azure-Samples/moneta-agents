@@ -1,12 +1,12 @@
 from typing import Dict, List, Tuple
-from genai_vanilla_agents.team import Team
-from genai_vanilla_agents.planned_team import PlannedTeam
-from genai_vanilla_agents.conversation import Conversation, SummarizeMessagesStrategy, LastNMessagesStrategy
-from agents.fsi_insurance.user_proxy_agent import user_proxy_agent
-from agents.fsi_insurance.crm_agent import crm_agent
-from agents.fsi_insurance.product_agent import product_agent
+from gbb.genai_vanilla_agents.team import Team
+from gbb.genai_vanilla_agents.planned_team import PlannedTeam
+from gbb.genai_vanilla_agents.conversation import Conversation, SummarizeMessagesStrategy, LastNMessagesStrategy
+from gbb.agents.fsi_insurance.user_proxy_agent import user_proxy_agent
+from gbb.agents.fsi_insurance.crm_agent import crm_agent
+from gbb.agents.fsi_insurance.product_agent import product_agent
 
-from agents.fsi_insurance.config import llm
+from gbb.agents.fsi_insurance.config import llm
 
 import logging
 logger = logging.getLogger(__name__)

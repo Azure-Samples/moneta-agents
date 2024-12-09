@@ -1,13 +1,13 @@
 from typing import Dict, List, Tuple
-from genai_vanilla_agents.team import Team
-from genai_vanilla_agents.planned_team import PlannedTeam
-from genai_vanilla_agents.conversation import Conversation, SummarizeMessagesStrategy, LastNMessagesStrategy
-from agents.fsi_banking.user_proxy_agent import user_proxy_agent
-from agents.fsi_banking.crm_agent import crm_agent
-from agents.fsi_banking.product_agent import product_agent
-from agents.fsi_banking.cio_agent import cio_agent
-from agents.fsi_banking.news_agent import news_agent
-from agents.fsi_banking.config import llm
+from gbb.genai_vanilla_agents.team import Team
+from gbb.genai_vanilla_agents.planned_team import PlannedTeam
+from gbb.genai_vanilla_agents.conversation import Conversation, SummarizeMessagesStrategy, LastNMessagesStrategy
+from gbb.agents.fsi_banking.user_proxy_agent import user_proxy_agent
+from gbb.agents.fsi_banking.crm_agent import crm_agent
+from gbb.agents.fsi_banking.product_agent import product_agent
+from gbb.agents.fsi_banking.cio_agent import cio_agent
+from gbb.agents.fsi_banking.news_agent import news_agent
+from gbb.agents.fsi_banking.config import llm
 
 import logging
 logger = logging.getLogger(__name__)

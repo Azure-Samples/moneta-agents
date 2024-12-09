@@ -142,9 +142,9 @@ class SemanticKernelHandler:
         self.logger.debug("Creating chat")
         
         query_agent = self.create_agent(service_id="gpt-4o", 
-                                        definition_file_path="sk/agents/query.yaml")
+                                        definition_file_path="sk/agents/insurance/query.yaml")
         responder_agent = self.create_agent(service_id="gpt-4o", 
-                                            definition_file_path="sk/agents/responder.yaml")
+                                            definition_file_path="sk/agents/insurance/responder.yaml")
         
         agents=[query_agent, responder_agent]
         

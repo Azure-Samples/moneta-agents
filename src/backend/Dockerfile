@@ -8,10 +8,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt  
   
 # Copy the application code  
-COPY . .  
+COPY *.py .  
+COPY gbb /app/gbb
+COPY sk /app/sk
   
 # Expose the port  
-EXPOSE 80  
+EXPOSE 8000 
   
 # Command to run the application  
-CMD ["uvicorn", "your_module_name:app", "--host", "0.0.0.0", "--port", "80"]  
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]  

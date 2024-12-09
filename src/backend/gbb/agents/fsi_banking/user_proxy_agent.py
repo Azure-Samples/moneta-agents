@@ -1,5 +1,4 @@
-from genai_vanilla_agents.user import User
-from agents.fsi_banking.config import llm
+from gbb.genai_vanilla_agents.user import User
 
 user_proxy_agent = User(
     id="Customer",

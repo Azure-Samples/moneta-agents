@@ -1,9 +1,7 @@
 import os
 from dotenv import load_dotenv
+from gbb.genai_vanilla_agents.llm import AzureOpenAILLM
 load_dotenv()
-
-from genai_vanilla_agents.llm import AzureOpenAILLM
-
 
 llm = AzureOpenAILLM({
     "azure_deployment": os.getenv("AZURE_OPENAI_DEPLOYMENT"),

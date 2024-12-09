@@ -1,5 +1,5 @@
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
-from genai_vanilla_agents.conversation import Conversation
+from gbb.genai_vanilla_agents.conversation import Conversation
 import os
 import json
 import datetime

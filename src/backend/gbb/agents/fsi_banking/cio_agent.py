@@ -1,10 +1,9 @@
 # CRM Agent 
-from pydantic import BaseModel, Field
 import json
 import os
 import logging
-from genai_vanilla_agents.agent import Agent
-from agents.fsi_banking.config import llm
+from gbb.genai_vanilla_agents.agent import Agent
+from gbb.agents.fsi_banking.config import llm
 from typing import List, Annotated, Optional
 import requests
 from azure.identity import DefaultAzureCredential

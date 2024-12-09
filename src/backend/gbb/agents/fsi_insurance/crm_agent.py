@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 import json
 import os
 import logging
-from genai_vanilla_agents.agent import Agent
-from agents.fsi_insurance.config import llm
+from gbb.genai_vanilla_agents.agent import Agent
+from gbb.agents.fsi_insurance.config import llm
 from typing import List, Annotated, Optional
 from crm_store import CRMStore
 from azure.identity import DefaultAzureCredential
