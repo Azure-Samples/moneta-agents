@@ -1,0 +1,17 @@
+[project]
+name = "moneta-frontend"
+version = "0.1.0"
+description = "Frontend UI for Moneta"
+readme = "README.md"
+requires-python = ">=3.12, <3.13"
+dependencies = [
+    "azure-storage-blob>=12.24.0",
+    "msal>=1.31.1",
+    "msal-streamlit-authentication>=1.1.0",
+    "pandas>=2.2.3",
+    "python-dotenv>=1.0.1",
+    "requests-html>=0.10.0",
+    "streamlit-msal>=0.2.0",
+    "streamlit-pdf-viewer>=0.0.19",
+    "streamlit>=1.40.2",
+]

@@ -56,7 +56,7 @@ st.markdown("""
         justify-content: center;
         align-items: center;
         height: 100vh;
-        background-image: url('insurance_logo.png');
+        background-image: url('resources/insurance_logo.png');
         background-repeat: no-repeat;
         background-position: center;
         background-size: contain;
@@ -121,7 +121,7 @@ def login():
         with col2:
             st.markdown('<p class="big-font">Welcome to Moneta</p>', unsafe_allow_html=True)
             st.markdown('<p class="medium-font">Your Agentic Assistant for Insurance and Banking</p>', unsafe_allow_html=True)
-            st.image('moneta_banner_v2.webp', width=600)
+            st.image('resources/banners/moneta_banner_v2.webp', width=600)
             st.write("Moneta is an AI-powered assistant designed to empower insurance advisors. "
                      "Log in to access personalized insights, streamline your workflow, and enhance your client interactions.")
             if st.button("Log in with Microsoft", key="login_button"):
@@ -145,7 +145,7 @@ def login():
         with col2:
             st.markdown('<p class="big-font">Welcome to Moneta</p>', unsafe_allow_html=True)
             st.markdown('<p class="medium-font">Your Agentic Assistant for Insurance and Banking</p>', unsafe_allow_html=True)
-            st.image('moneta_banner.webp')
+            st.image('resources/banners/moneta_banner.webp')
             st.write("Moneta is an AI-powered assistant designed to empower insurance advisors. "
                      "Log in to access personalized insights, streamline your workflow, and enhance your client interactions.")
             scopes = ["User.Read"]
@@ -166,7 +166,7 @@ def fetch_conversations():
     }
 
     try:
-        response = requests.post(f'{BACKEND_URL}/api/http_trigger?code={FUNCTION_APP_KEY}', json=payload)
+        response = requests.post(f'{BACKEND_URL}/http_trigger?code={FUNCTION_APP_KEY}', json=payload)
         return response.json()
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching conversations: {e}")
@@ -368,7 +368,7 @@ def send_message_to_backend(user_input, conversation_dict):
         payload["chat_id"] = conversation_dict.get('name')
 
     try:
-        url = f'{BACKEND_URL}/api/http_trigger?code={FUNCTION_APP_KEY}'
+        url = f'{BACKEND_URL}/http_trigger?code={FUNCTION_APP_KEY}'
         response = requests.post(url, json=payload)
         response.raise_for_status()
         assistant_response = response.json()

@@ -1,9 +1,0 @@
-streamlit
-streamlit_pdf_viewer
-pandas
-azure-storage-blob
-python-dotenv
-requests_html
-msal
-msal_streamlit_authentication
-streamlit_msal

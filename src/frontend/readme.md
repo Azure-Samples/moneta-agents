@@ -1,5 +1,5 @@
 # Overview
-Moneta backend.
+Moneta frontend.
 
 The project is managed by pyproject.toml.
 
@@ -9,7 +9,7 @@ The project is managed by pyproject.toml.
 # Prepare requirements.txt
 * To create requirements.txt out of pyproject.toml:
     ```shell
-    uv pip compile ../../pyproject.toml --no-deps |\
+    uv pip compile pyproject.toml --no-deps |\
         grep -v '# via' |\
         grep -v ipykernel > requirements.txt 
     ```
@@ -17,8 +17,8 @@ The project is managed by pyproject.toml.
 # Run locally
 
 * Activate .venv as per above
-* Create .env as per sample.env
+* Configure .env as per sample.env
 
 ```shell
-python app.py
+streamlit run app.py
 ```

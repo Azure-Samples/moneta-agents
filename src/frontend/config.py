@@ -153,7 +153,7 @@ GENERAL_STYLES = """
         justify-content: center;
         align-items: center;
         height: 100vh;
-        background-image: url('insurance_logo.png');
+        background-image: url('resources/insurance_logo.png');
         background-repeat: no-repeat;
         background-position: center;
         background-size: contain;
