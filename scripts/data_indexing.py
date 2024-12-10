@@ -78,7 +78,7 @@ for container_name in container_names:
         type="azureblob",
         connection_string=blob_connection_string,
         container=container,
-        identity=identity
+        identity=identity,
         data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy()
     )
     data_source = indexer_client.create_or_update_data_source_connection(data_source_connection)
