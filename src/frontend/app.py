@@ -368,7 +368,7 @@ def send_message_to_backend(user_input, conversation_dict):
         payload["chat_id"] = conversation_dict.get('name')
 
     try:
-        url = f'{BACKEND_ENDPOINT}/http_trigger?code={FUNCTION_APP_KEY}'
+        url = f'{BACKEND_ENDPOINT}/http_trigger'
         response = requests.post(url, json=payload)
         response.raise_for_status()
         assistant_response = response.json()
