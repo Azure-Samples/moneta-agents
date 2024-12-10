@@ -29,7 +29,7 @@ st.set_page_config(
 # Constants
 CLIENT_ID = os.getenv('AZ_REG_APP_CLIENT_ID','')
 TENANT_ID = os.getenv('AZ_TENANT_ID','')
-BACKEND_URL = os.getenv('FUNCTION_APP_URL')
+BACKEND_ENDPOINT = os.getenv('BACKEND_ENDPOINT')
 REDIRECT_URI = os.getenv("WEB_REDIRECT_URI")
 DISABLE_LOGIN = os.getenv('DISABLE_LOGIN')
 FUNCTION_APP_KEY = os.getenv('FUNCTION_APP_KEY')
@@ -166,7 +166,7 @@ def fetch_conversations():
     }
 
     try:
-        response = requests.post(f'{BACKEND_URL}/http_trigger?code={FUNCTION_APP_KEY}', json=payload)
+        response = requests.post(f'{BACKEND_ENDPOINT}/http_trigger?code={FUNCTION_APP_KEY}', json=payload)
         return response.json()
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching conversations: {e}")
@@ -368,7 +368,7 @@ def send_message_to_backend(user_input, conversation_dict):
         payload["chat_id"] = conversation_dict.get('name')
 
     try:
-        url = f'{BACKEND_URL}/http_trigger?code={FUNCTION_APP_KEY}'
+        url = f'{BACKEND_ENDPOINT}/http_trigger?code={FUNCTION_APP_KEY}'
         response = requests.post(url, json=payload)
         response.raise_for_status()
         assistant_response = response.json()
