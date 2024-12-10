@@ -16,7 +16,9 @@ param serviceName string
 
 param containerRegistryName string
 
-param logAnalyticsWorkspaceName string
+@description('Name of the container apps environment to build the app in')
+param containerAppsEnvironmentName string 
+
 // param applicationInsightsName string
 
 // param azureOpenAIModelEndpoint string
@@ -28,31 +30,13 @@ param logAnalyticsWorkspaceName string
 
 param exists bool
 
-// resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31'  existing = { name: identityName }
-// resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = { name: applicationInsightsName }
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = { name: logAnalyticsWorkspaceName }
+resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' existing = { name: containerAppsEnvironmentName } 
 
 module fetchLatestImage './fetch-container-image.bicep' = {
   name: '${name}-fetch-image'
   params: {
     exists: exists
     name: name
-  }
-}
-
-resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2022-10-01' = {
-  name: name
-  location: location
-  tags: tags
-  properties: {
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: logAnalyticsWorkspace.properties.customerId
-        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
-      }
-    }
-    daprAIConnectionString: env.APPLICATIONINSIGHTS_CONNECTION_STRING
   }
 }
 

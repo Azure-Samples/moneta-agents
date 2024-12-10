@@ -19,6 +19,19 @@ param extraTags object = {}
 @description('Name of the container registry to deploy. If not specified, a name will be generated. The name is global and must be unique within Azure. The maximum length is 50 characters.')
 param containerRegistryName string = ''
 
+@maxLength(60)
+@description('Name of the container apps environment to deploy. If not specified, a name will be generated. The maximum length is 60 characters.')
+param containerAppsEnvironmentName string = ''
+
+/* --------------------------------- Backend -------------------------------- */
+
+@maxLength(32)
+@description('Name of the frontend container app to deploy. If not specified, a name will be generated. The maximum length is 32 characters.')
+param frontendContainerAppName string = ''
+
+@description('Set if the frontend container app already exists.')
+param frontendAppExists bool = false
+
 /* --------------------------------- Backend -------------------------------- */
 
 @maxLength(32)
@@ -109,13 +122,24 @@ var resourceToken = toLower(uniqueString(subscription().id, environmentName, loc
 @description('Name of the environment with only alphanumeric characters. Used for resource names that require alphanumeric characters only')
 var alphaNumericEnvironmentName = replace(replace(environmentName, '-', ''), ' ', '')
 
+@description('Tags to be applied to all provisioned resources')
+var tags = union({  
+  'azd-env-name': environmentName
+   solution: 'moneta-agentic-gbb-ai-1.0'    
+ }, extraTags)
+
 /* --------------------- Globally Unique Resource Names --------------------- */
 
 var _containerRegistryName = !empty(containerRegistryName) ? containerRegistryName : take('${abbreviations.containerRegistryRegistries}${take(alphaNumericEnvironmentName, 35)}${resourceToken}', 50)
 
 /* ----------------------------- Resource Names ----------------------------- */
 
+var _frontendContainerAppName = !empty(frontendContainerAppName) ? frontendContainerAppName : take('${abbreviations.appContainerApps}frontend-${environmentName}', 32)
 var _backendContainerAppName = !empty(backendContainerAppName) ? backendContainerAppName : take('${abbreviations.appContainerApps}backend-${environmentName}', 32)
+var _containerAppsEnvironmentName = !empty(containerAppsEnvironmentName) ? containerAppsEnvironmentName : take('${abbreviations.appManagedEnvironments}${environmentName}', 60)
+var _appIdentityName = take('${abbreviations.managedIdentityUserAssignedIdentities}${environmentName}', 32)
+
+/* -------------------------------------------------------------------------- */
 
 
 // Variables for AI Search index names and configurations
@@ -128,23 +152,18 @@ var aiSearchInsSemanticConfiguration = 'ins-semantic-config'
 var aiSearchVectorFieldName = 'contentVector'
 
 // Define common tags  
-var tags = union({  
- 'azd-env-name': environmentName
-  solution: 'moneta-agentic-gbb-ai-1.0'    
-}, extraTags)
-
 
 
 /* -------------------------------------------------------------------------- */
 /*                                  RESOURCES                                 */
 /* -------------------------------------------------------------------------- */
 
-module backendAppIdentity './modules/app/identity.bicep' = {
-  name: 'backendAppIdentity'
+module appIdentity './modules/app/identity.bicep' = {
+  name: 'appIdentity'
   scope: resourceGroup()
   params: {
     location: location
-    identityName: _backendContainerAppName
+    identityName: _appIdentityName
   }
 }
 
@@ -153,11 +172,59 @@ module containerRegistry 'modules/app/registry.bicep' = {
   scope: resourceGroup()
   params: {
     location: location
-    identityName: backendAppIdentity.outputs.name
+    identityName: appIdentity.outputs.name
     tags: tags
     name: '${abbreviations.containerRegistryRegistries}${resourceToken}'
   }
 }
+
+resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
+  name: _containerAppsEnvironmentName
+  location: location
+  tags: tags
+  properties: {
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId:  logAnalytics.properties.customerId
+        sharedKey: logAnalytics.listKeys().primarySharedKey
+      }
+    }
+    daprAIConnectionString: appInsights.properties.ConnectionString
+  }
+}
+
+/* ------------------------------ Frontend App ------------------------------ */
+
+module frontendApp 'modules/app/containerapp.bicep' = {
+  name: 'frontend-container-app'
+  scope: resourceGroup()
+  params: {
+    name: _frontendContainerAppName
+    tags: tags
+    identityId: appIdentity.outputs.identityId
+    containerAppsEnvironmentName: containerAppsEnvironment.name
+    containerRegistryName: containerRegistry.outputs.name
+    exists: frontendAppExists
+    serviceName: 'frontend' // Must match the service name in azure.yaml
+    env: {
+      AZ_REG_APP_CLIENT_ID: ''
+      AZ_TENANT_ID: ''
+      BACKEND_ENDPOINT: backendApp.outputs.URL
+      DISABLE_LOGIN: 'True'
+      FUNCTION_APP_KEY: ''
+      WEB_REDIRECT_URI: ''
+
+      // required for container app daprAI
+      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
+
+      // required for managed identity
+      AZURE_CLIENT_ID: appIdentity.outputs.clientId
+    }
+  }
+}
+
+/* ------------------------------ Backend App ------------------------------- */
 
 module backendApp 'modules/app/containerapp.bicep' = {
   name: 'backend-container-app'
@@ -165,11 +232,11 @@ module backendApp 'modules/app/containerapp.bicep' = {
   params: {
     name: _backendContainerAppName
     tags: tags
-    logAnalyticsWorkspaceName: logAnalytics.name
-    identityId: backendAppIdentity.outputs.identityId
+    identityId: appIdentity.outputs.identityId // TODO: revisit having a separate identity for the frontend app
+    containerAppsEnvironmentName: containerAppsEnvironment.name
     containerRegistryName: containerRegistry.outputs.name
     exists: backendAppExists
-    serviceName: 'backend'
+    serviceName: 'backend' // Must match the service name in azure.yaml
     env: {
       AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
       AI_SEARCH_ENDPOINT: aiSearchEndpoint
@@ -192,7 +259,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
 
       // required for managed identity
-      AZURE_CLIENT_ID: backendAppIdentity.outputs.clientId
+      AZURE_CLIENT_ID: appIdentity.outputs.clientId
     }
   }
 }
@@ -202,7 +269,7 @@ resource backendAppStorageBlobDataContributorRole 'Microsoft.Authorization/roleA
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe') // Storage Blob Data Contributor
-    principalId: backendAppIdentity.outputs.principalId
+    principalId: appIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -212,7 +279,7 @@ resource backendAppStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignm
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b') // Storage Blob Data Owner
-    principalId: backendAppIdentity.outputs.principalId
+    principalId: appIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -222,7 +289,7 @@ resource backendAppStorageQueueDataContributorRole 'Microsoft.Authorization/role
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88') // Storage Queue Data Contributor
-    principalId: backendAppIdentity.outputs.principalId
+    principalId: appIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -232,7 +299,7 @@ resource backendAppStorageAccountContributorRole 'Microsoft.Authorization/roleAs
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab') // Storage Account Contributor
-    principalId: backendAppIdentity.outputs.principalId
+    principalId: appIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -247,7 +314,7 @@ resource cosmosDbRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04
   name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbRoleDefinition.id)
   scope: cosmosDbAccount
   properties: {
-    principalId: backendAppIdentity.outputs.principalId
+    principalId: appIdentity.outputs.principalId
     roleDefinitionId: cosmosDbRoleDefinition.id
     principalType: 'ServicePrincipal'
   }
@@ -263,12 +330,10 @@ resource cosmosDbDataContributorRoleAssignment 'Microsoft.DocumentDB/databaseAcc
   name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbDataContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
-    principalId: backendAppIdentity.outputs.principalId
+    principalId: appIdentity.outputs.principalId
     scope: cosmosDbAccount.id
   }
 }
-
-
 
 /* -------------------------------------------------------------------------- */
 
@@ -413,20 +478,6 @@ resource cosmosDbCRMContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
   tags: tags
 }
 
-// Service Plan for Function App
-resource servicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
-  name: '${functionAppName}-plan'
-  location: location
-  kind: 'Linux'
-  sku: {
-    name: 'B1'
-    tier: 'Basic'
-  }
-  properties: {
-    reserved: true
-  }
-  tags: tags
-}
 
 // Storage Account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
@@ -480,83 +531,6 @@ var aiSearchAdminKey = empty(overrideAiSearchKey) ? listAdminKeys(aiSearchServic
 // Set AI Search endpoint
 var aiSearchEndpoint = empty(overrideAiSearchEndpoint) ? 'https://${aiSearchService.name}.search.windows.net' : overrideAiSearchEndpoint
 
-// App Service Plan for Streamlit
-@description('Name of the App Service Plan for Streamlit')
-param appServicePlanName string = '${namePrefix}-plan'
-
-@description('Name of the Web App for Streamlit')
-param webAppName string = '${namePrefix}-agents-${uniqueString(resourceGroup().id)}'
-
-// Streamlit App Service Plan
-resource streamlitServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
-  name: appServicePlanName
-  location: location
-  kind: 'Linux'
-  sku: {
-    name: 'B1'
-    tier: 'Basic'
-  }
-  properties: {
-    reserved: true
-  }
-  tags: tags
-}
-
-// Streamlit Web App
-resource streamlitWebApp 'Microsoft.Web/sites@2022-03-01' = {
-  name: webAppName
-  location: location
-  properties: {
-    serverFarmId: streamlitServicePlan.id
-    siteConfig: {
-      linuxFxVersion: webappAppDockerImage
-      appSettings: [
-        {
-          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
-          value: 'false'
-        }
-        {
-          name: 'FUNCTION_APP_URL'
-          value: backendApp.outputs.URL
-        }
-        {
-          name: 'DOCKER_REGISTRY_SERVER_URL'
-          value: 'https://index.docker.io'
-        } 
-        {
-          name: 'DISABLE_LOGIN'
-          value: 'False'
-        }
-        {
-          name: 'AZ_TENANT_ID'
-          value: ''
-        }  
-        {
-          name: 'AZ_REG_APP_CLIENT_ID'
-          value: ''
-        }    
-        {
-          name: 'AZ_REG_APP_SCOPE'
-          value: 'User.Read'
-        } 
-        {
-          name: 'WEB_REDIRECT_URI'
-          value: ''
-        }
-        // TODO: handle authentication of the frontend to the backend app !!!
-        /* 
-        {
-          name: 'FUNCTION_APP_KEY'
-          value: listKeys('${resourceId('Microsoft.Web/sites', functionAppName)}/host/default', '2018-11-01').functionKeys.default
-        } 
-        */
-      ]
-    }
-    httpsOnly: true
-  }
-  kind: 'app,linux'
-  tags: tags
-}
 
 import * as role from './role.bicep'
 
@@ -607,6 +581,12 @@ resource userSearchServiceContributorRoleAssignment 'Microsoft.Authorization/rol
 
 @description('The endpoint of the container registry.') // necessary for azd deploy
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+
+@description('Endpoint URL of the Frontend service') 
+output SERVICE_FRONTEND_ENDPOINTS array = [ frontendApp.outputs.URL ]	
+
+@description('Endpoint URL of the Backend service') 
+output SERVICE_BACKEND_ENDPOINTS array = [ backendApp.outputs.URL	]
 
 /* -------------------------------------------------------------------------- */
 

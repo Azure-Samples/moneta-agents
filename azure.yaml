@@ -3,10 +3,14 @@
 # This is an example starter azure.yaml file containing several example services in comments below.
 # Make changes as needed to describe your application setup.
 # To learn more about the azure.yaml file, visit https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/azd-schema
-
-# Name of the application.
 name: moneta
 services:
+  frontend:
+    language: python
+    project: src/frontend
+    host: containerapp
+    docker:
+      path: ./Dockerfile
   backend:
     language: python
     project: src/backend
