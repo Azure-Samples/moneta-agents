@@ -1,5 +1,3 @@
-import * as role from './modules/role.bicep'
-
 /* -------------------------------------------------------------------------- */
 /*                                 PARAMETERS                                 */
 /* -------------------------------------------------------------------------- */
@@ -19,7 +17,7 @@ param extraTags object = {}
 param authClientId string = ''
 
 @description('The auth tenant id for the frontend and backend app')
-param authTenantId string = subscription().tenantId
+param authTenantId string
 
 /* ---------------------------- Shared Resources ---------------------------- */
 
@@ -301,16 +299,13 @@ module frontendApp 'modules/app/containerapp.bicep' = {
       // required for managed identity
       AZURE_CLIENT_ID: appIdentity.outputs.clientId
     }
-    // keyvaultIdentities: {
-    //   'microsoft-provider-authentication-secret': {
-    //     keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
-    //     identity: appIdentity.outputs.identityId
-    //   }
-    // }
+    keyvaultIdentities: {
+      'microsoft-provider-authentication-secret': {
+        keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
+        identity: appIdentity.outputs.identityId
+      }
+    }
   }
-  dependsOn: [
-    keyVault
-  ]
 }
 
 module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
@@ -346,17 +341,15 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
   }
 }
 
-module auth 'modules/app/container-apps-auth.bicep' = {
+module frontendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
   name: 'frontend-container-app-auth-module'
   params: {
     name: frontendApp.outputs.name
     clientId: authClientId
     clientSecretName: 'microsoft-provider-authentication-secret'
     openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
+    unauthenticatedClientAction: 'RedirectToLoginPage'
   }
-  dependsOn: [
-    keyVault
-  ]
 }
 
 /* ------------------------------ Backend App ------------------------------- */
@@ -395,6 +388,23 @@ module backendApp 'modules/app/containerapp.bicep' = {
       // required for managed identity
       AZURE_CLIENT_ID: backendIdentity.outputs.clientId
     }
+    keyvaultIdentities: {
+      'microsoft-provider-authentication-secret': {
+        keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
+        identity: appIdentity.outputs.identityId
+      }
+    }
+  }
+}
+
+module backendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
+  name: 'backend-container-app-auth-module'
+  params: {
+    name: backendApp.outputs.name
+    clientId: authClientId
+    clientSecretName: 'microsoft-provider-authentication-secret'
+    openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
+    unauthenticatedClientAction: 'Return401'
   }
 }
 

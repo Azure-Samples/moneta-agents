@@ -1,9 +1,12 @@
 #!/bin/bash
 set -e
-eval "$(azd env get-values)"
 
-echo "Running post-provision hook..."
+echo "Running postprovision hook..."
 
-.venv/bin/python ./scripts/data_load/data_upload.py
-.venv/bin/python ./scripts/data_load/data_indexing.py
-.venv/bin/python ./scripts/data_load/data_upload_customer_profiles.py
+REDIRECT_URI="$SERVICE_FRONTEND_URL/.auth/login/aad/callback"
+
+echo "Adding app registration redirect URI $REDIRECT_URI..."
+az ad app update \
+    --id "$AZURE_CLIENT_APP_ID" \
+    --web-redirect-uris "http://localhost:5801/.auth/login/aad/callback" "$REDIRECT_URI" \
+    --output table

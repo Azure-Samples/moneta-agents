@@ -1,7 +1,0 @@
-azure-identity
-aiohttp
-msgraph-sdk
-msgraph-beta-sdk
-rich
-python-dotenv
-azure-search-documents==11.6.0b7
