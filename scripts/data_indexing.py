@@ -1,6 +1,5 @@
 import os
 from azure.identity import DefaultAzureCredential
-from azure.core.credentials import AzureKeyCredential
 from azure.storage.blob import BlobServiceClient, BlobClient
 from dotenv import load_dotenv
 
@@ -37,12 +36,12 @@ from azure.search.documents.indexes.models import NativeBlobSoftDeleteDeletionDe
 load_dotenv(override=True)  # Take environment variables from .env
 
 # Variables
+credential = DefaultAzureCredential()
+
 endpoint = os.environ["AI_SEARCH_ENDPOINT"]
-credential = AzureKeyCredential(os.getenv("AZURE_SEARCH_KEY")) if os.getenv("AZURE_SEARCH_KEY") else DefaultAzureCredential()
 
 blob_connection_string = f"ResourceId={os.environ["AZURE_STORAGE_ACCOUNT_ID"]}"
 account_url = os.getenv("BLOB_ACCOUNT_URL")
-account_key = AzureKeyCredential(os.getenv("BLOB_ACCOUNT_KEY")) if os.getenv("BLOB_ACCOUNT_KEY") else DefaultAzureCredential()
 azure_openai_endpoint = os.environ["AZURE_OPENAI_ENDPOINT"]
 azure_openai_key = os.getenv("AZURE_OPENAI_KEY")
 azure_openai_embedding_deployment = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-large")
@@ -51,7 +50,7 @@ azure_openai_model_dimensions = int(os.getenv("AZURE_OPENAI_EMBEDDING_DIMENSIONS
 chuncksize = int(os.getenv("CHUNCK_SIZE", 2000))
 
 # Create the BlobServiceClient object
-blob_service_client = BlobServiceClient(account_url, credential=account_key)
+blob_service_client = BlobServiceClient(account_url, credential)
 
 identity = SearchIndexerDataUserAssignedIdentity(resource_id=os.getenv("AI_SEARCH_IDENTITY_ID"))
 

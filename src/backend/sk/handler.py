@@ -28,8 +28,8 @@ class SemanticKernelHandler:
         self.logger.debug("Semantic Kernel Handler init")
         
         self.db = ConversationStore(
-            url=os.getenv("COSMOSDB_ENDPOINT"),
             key=DefaultAzureCredential(),
+            url=os.getenv("COSMOSDB_ENDPOINT"),
             database_name=os.getenv("COSMOSDB_DATABASE_NAME"),
             container_name=os.getenv("COSMOSDB_CONTAINER_FSI_INS_USER_NAME"),
         )
@@ -41,7 +41,7 @@ class SemanticKernelHandler:
                 crm_container_name=os.getenv("COSMOSDB_CONTAINER_CLIENT_NAME"))
         
         product = ProductFacade(
-            key = os.getenv("AI_SEARCH_KEY"),
+            credential=DefaultAzureCredential(),
             service_endpoint = os.getenv('AI_SEARCH_ENDPOINT'),
             index_name = os.getenv('AI_SEARCH_INS_INDEX_NAME'),
             semantic_configuration_name = os.getenv('AI_SEARCH_INS_SEMANTIC_CONFIGURATION'))

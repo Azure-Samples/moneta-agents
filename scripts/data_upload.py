@@ -3,7 +3,6 @@ import os
 import uuid
 import re
 from azure.identity import DefaultAzureCredential
-from azure.core.credentials import AzureKeyCredential
 from azure.storage.blob import BlobServiceClient, BlobClient
 from dotenv import load_dotenv
 
@@ -11,7 +10,7 @@ load_dotenv(override=True)  # Take environment variables from .env
 
 # Variables
 account_url = os.getenv("BLOB_ACCOUNT_URL")
-credentials = AzureKeyCredential(os.getenv("BLOB_ACCOUNT_KEY")) if os.getenv("BLOB_ACCOUNT_KEY") else DefaultAzureCredential()
+credentials = DefaultAzureCredential()
 # Create the BlobServiceClient object
 blob_service_client = BlobServiceClient(account_url, credential=credentials)
 

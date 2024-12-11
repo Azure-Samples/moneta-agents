@@ -8,7 +8,6 @@ from gbb.agents.fsi_insurance.config import llm
 from typing import List, Annotated, Optional
 import requests
 from azure.identity import DefaultAzureCredential
-from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 
 
@@ -37,7 +36,7 @@ def search(query: str):
     index_name = os.getenv('AI_SEARCH_INS_INDEX_NAME')
     key = os.environ["AI_SEARCH_KEY"]
 
-    search_client = SearchClient(service_endpoint, index_name, AzureKeyCredential(key))
+    search_client = SearchClient(service_endpoint, index_name, DefaultAzureCredential())
     payload = json.dumps(
         {
             "search": query,
