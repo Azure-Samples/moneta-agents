@@ -1,19 +1,34 @@
 import io
 import os
 import uuid
+import json
+import subprocess
 import re
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient, BlobClient
 from dotenv import load_dotenv
 
-load_dotenv(override=True)  # Take environment variables from .env
+def load_azd_env():
+    """Get path to current azd env file and load file using python-dotenv"""
+    result = subprocess.run("azd env list -o json", shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise Exception("Error loading azd env")
+    env_json = json.loads(result.stdout)
+    env_file_path = None
+    for entry in env_json:
+        if entry["IsDefault"]:
+            env_file_path = entry["DotEnvPath"]
+    if not env_file_path:
+        raise Exception("No default azd env file found")
+    load_dotenv(env_file_path, override=True)
 
+load_azd_env()
 # Variables
 account_url = os.getenv("BLOB_ACCOUNT_URL")
 credentials = DefaultAzureCredential()
 # Create the BlobServiceClient object
-blob_service_client = BlobServiceClient(account_url, credential=credentials)
 
+blob_service_client = BlobServiceClient(account_url, credential=credentials)
 
 # Functions for sanitizing and uploading files
 def sanitize_folder_file_name(value):

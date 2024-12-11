@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+eval $(azd env get-values)
 
 echo "Running post-provision hook..."
 
@@ -26,12 +27,14 @@ if [ -z "$cosmosdb_resource_id" ]; then
     exit 1
 fi
 
+#TODO MOVE TO BICEP
 echo "Assigning role on OpenAI resource..."
 az role assignment create -o table \
     --assignee "$AZURE_PRINCIPAL_ID" \
     --role "Cognitive Services OpenAI User" \
     --scope "$openai_resource_id" 
 
+#TODO MOVE TO BICEP
 az role assignment create -o table \
     --assignee "$AI_SEARCH_PRINCIPAL_ID" \
     --role "Cognitive Services OpenAI User" \
