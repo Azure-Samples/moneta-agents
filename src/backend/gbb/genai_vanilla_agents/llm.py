@@ -56,17 +56,17 @@ class AzureOpenAILLM(LLM):
     def __init__(self, config: dict):
         super().__init__(config)
                 
-        api_key = self.config['api_key']
-        token_provider = get_bearer_token_provider(
-            DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
-        ) if api_key is None or api_key == "" else None
+        # api_key = self.config['api_key']
+        token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+        # ) if api_key is None or api_key == "" else None
+        
         self.client = AzureOpenAI(
             azure_deployment=self.config['azure_deployment'], 
-            api_key=self.config['api_key'], 
+            # api_key=self.config['api_key'], 
             azure_endpoint=self.config['azure_endpoint'], 
             api_version=self.config['api_version'],
             azure_ad_token_provider=token_provider)
-        logger.debug("LLM initialized with AzureOpenAI client with %s", "api_key" if api_key else "token provider")
+        logger.debug("LLM initialized with AzureOpenAI client with token provider")
         
     def ask(self, messages: list, tools: list = None, tools_function: dict[str, callable] = None, temperature: float = 0.7, response_format = NOT_GIVEN):
         # logger.debug("Received messages: %s", messages)

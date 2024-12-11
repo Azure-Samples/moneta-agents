@@ -2,30 +2,36 @@ import os
 import logging  
 import subprocess
 import json
+from dotenv import load_dotenv  
 from fastapi import FastAPI, HTTPException, Body  
 from fastapi.responses import JSONResponse  
 from azure.identity import DefaultAzureCredential  
-from dotenv import load_dotenv  
   
 from conversation_store import ConversationStore  
 from gbb.handler import VanillaAgenticHandler  
 from sk.handler import SemanticKernelHandler  
   
 from dotenv import load_dotenv
+logging.basicConfig(level=logging.INFO)  
 
 def load_azd_env():
     """Get path to current azd env file and load file using python-dotenv"""
     result = subprocess.run("azd env list -o json", shell=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise Exception("Error loading azd env")
-    env_json = json.loads(result.stdout)
-    env_file_path = None
-    for entry in env_json:
-        if entry["IsDefault"]:
-            env_file_path = entry["DotEnvPath"]
-    if not env_file_path:
-        raise Exception("No default azd env file found")
-    load_dotenv(env_file_path, override=True)
+    if result.returncode == 0:
+        logging.info(f"azd binary present")
+        env_json = json.loads(result.stdout)
+        env_file_path = None
+        for entry in env_json:
+            logging.info(f"azd entry found: {entry}")
+            if entry["IsDefault"]:
+                env_file_path = entry["DotEnvPath"]
+        if not env_file_path:
+            logging.info(f"azd environment not present. reverting to plain dotenv")
+            load_dotenv()
+        load_dotenv(env_file_path, override=True)
+    else:
+        logging.info(f"azd binary not found. reverting to plain dotenv")
+        load_dotenv()
     
 # Load environment variables from a .env file  
 load_azd_env()
@@ -33,7 +39,6 @@ load_azd_env()
 app = FastAPI()  
   
 # Configure logging  
-logging.basicConfig(level=logging.INFO)  
   
 @app.post("/http_trigger")  
 async def http_trigger(request_body: dict = Body(...)):  
@@ -57,7 +62,7 @@ async def http_trigger(request_body: dict = Body(...)):
         raise HTTPException(status_code=400, detail="<usecase_type> is required!")  
   
     # Authenticate using DefaultAzureCredential  
-    key = DefaultAzureCredential()  
+    key = DefaultAzureCredential() 
   
     # Select use case container based on usecase_type  
     if usecase_type == 'fsi_insurance':  
@@ -85,9 +90,6 @@ async def http_trigger(request_body: dict = Body(...)):
     # Decide which handler to use based on the HANDLER_TYPE environment variable  
     handler_type = os.getenv("HANDLER_TYPE", "semantickernel")  # Expected values: "vanilla", "semantickernel"  
     
-    print("-----------------------")
-    print(f"handler_type: {handler_type}")
-  
     if handler_type == "vanilla":  
         handler = VanillaAgenticHandler(db)  
     elif handler_type == "semantickernel":  

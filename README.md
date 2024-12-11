@@ -5,6 +5,11 @@ Moneta is an AI-powered assistant designed to empower insurance and banking advi
 The agentic framework used behind is the:
 [Microsoft GBB AI EMEA - Vanilla Agents](https://github.com/Azure-Samples/genai-vanilla-agents)
 
+## Prerequisites
+
+* Docker
+* uv
+
 ## Features
 
 - Multi-Use Case Support: Switch between insurance and banking use cases
@@ -37,6 +42,9 @@ The agentic framework used behind is the:
 - `News`: RSS online feed search on stock news
 
 ## Project structure
+
+TO BE UPDATED!
+
 - backend
   - agents
     - fsi_banking # agents files
@@ -98,10 +106,15 @@ Assign the following roles to the user (yourself): Cognitive Service OpenAI user
 
 ### Docker deployment (local) - backend
 
-- create a .env file following the backend/.env.sample
-- adjust your docker container names / registries in backend/deploy_backend_acr.sh 
-- chmod u+x backend/deploy_backend_acr.sh 
--./backend/deploy_backend_acr.sh  
+The python project is managed by pyproject.toml and [uv package manager](https://docs.astral.sh/uv/getting-started/installation/).
+Install uv prior executing.
+
+To run locally:
+```shell
+cd src/backend
+uv sync
+./.venv/bin/python app.py
+```
 
 ### Docker deployment (local) - frontend
 

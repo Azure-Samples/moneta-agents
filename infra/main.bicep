@@ -392,9 +392,8 @@ module backendApp 'modules/app/containerapp.bicep' = {
       AI_SEARCH_INS_INDEX_NAME: aiSearchInsIndexName
       AI_SEARCH_INS_SEMANTIC_CONFIGURATION: aiSearchInsSemanticConfiguration
       AZURE_OPENAI_API_VERSION: azureOpenaiApiVersion
-      AZURE_OPENAI_DEPLOYMENT: deployments[1].name
+      AZURE_OPENAI_DEPLOYMENT_NAME: deployments[1].name
       AZURE_OPENAI_ENDPOINT: openAi.outputs.endpoint
-      // AZURE_OPENAI_KEY: azureOpenaiKey
       COSMOSDB_CONTAINER_CLIENT_NAME: cosmosDbCRMContainerName
       COSMOSDB_CONTAINER_FSI_BANK_USER_NAME: cosmosDbBankingContainerName
       COSMOSDB_CONTAINER_FSI_INS_USER_NAME: cosmosDbInsuranceContainerName
