@@ -22,6 +22,21 @@
       },
       "azureOpenaiApiVersion": {
         "value": "${AZURE_OPENAI_API_VERSION}"
+      },
+      "frontendExists": {
+        "value": "${SERVICE_FRONTEND_RESOURCE_EXISTS=false}"
+      },
+      "backendExists": {
+        "value": "${SERVICE_BACKEND_RESOURCE_EXISTS=false}"
+      },
+      "authTenantId": {
+        "value": "${AZURE_AUTH_TENANT_ID}"
+      },
+      "authClientId": {
+        "value": "${AZURE_CLIENT_APP_ID}"
+      },
+      "authClientSecret": {
+        "value": "${AZURE_CLIENT_APP_SECRET}"
       }
     }
 }

@@ -1,3 +1,5 @@
+metadata description = 'Creates an Azure Container App and deals with initial state when no container is deployed.'
+
 @description('Name of the container app')
 param name string
 
@@ -19,6 +21,14 @@ param containerRegistryName string
 @description('Name of the container apps environment to build the app in')
 param containerAppsEnvironmentName string 
 
+@description('The keyvault identities required for the container')
+@secure()
+param keyvaultIdentities object = {}
+
+@description('The secrets required for the container')
+@secure()
+param secrets object = {}
+
 // param applicationInsightsName string
 
 // param azureOpenAIModelEndpoint string
@@ -30,6 +40,18 @@ param containerAppsEnvironmentName string
 
 param exists bool
 
+
+var keyvalueSecrets = [for secret in items(secrets): {
+  name: secret.key
+  value: secret.value
+}]
+
+var keyvaultIdentitySecrets = [for secret in items(keyvaultIdentities): {
+  name: secret.key
+  keyVaultUrl: secret.value.keyVaultUrl
+  identity: secret.value.identity
+}]
+
 resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' existing = { name: containerAppsEnvironmentName } 
 
 module fetchLatestImage './fetch-container-image.bicep' = {
@@ -40,7 +62,7 @@ module fetchLatestImage './fetch-container-image.bicep' = {
   }
 }
 
-resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
+resource app 'Microsoft.App/containerApps@2024-08-02-preview' = {
   name: name
   location: location
   tags: union(tags, {'azd-service-name':  serviceName })
@@ -55,6 +77,9 @@ resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
         external: true
         targetPort: 8000
         transport: 'auto'
+        corsPolicy: {
+          allowedOrigins: [ 'https://portal.azure.com', 'https://ms.portal.azure.com' ]
+        }        
       }
       registries: [
         {
@@ -62,6 +87,7 @@ resource app 'Microsoft.App/containerApps@2023-04-01-preview' = {
           identity: identityId
         }
       ]
+      secrets: concat(keyvalueSecrets, keyvaultIdentitySecrets)
     }
     template: {
       containers: [

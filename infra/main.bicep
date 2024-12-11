@@ -13,6 +13,12 @@ param azurePrincipalId string
 @description('Extra tags to be applied to provisioned resources')
 param extraTags object = {}
 
+@description('The auth client id for the frontend and backend app')
+param authClientId string = ''
+
+@description('The auth tenant id for the frontend and backend app')
+param authTenantId string
+
 /* ---------------------------- Shared Resources ---------------------------- */
 
 @maxLength(50)
@@ -30,7 +36,7 @@ param containerAppsEnvironmentName string = ''
 param frontendContainerAppName string = ''
 
 @description('Set if the frontend container app already exists.')
-param frontendAppExists bool = false
+param frontendExists bool = false
 
 /* --------------------------------- Backend -------------------------------- */
 
@@ -39,14 +45,18 @@ param frontendAppExists bool = false
 param backendContainerAppName string = ''
 
 @description('Set if the backend container app already exists.')
-param backendAppExists bool = false
+param backendExists bool = false
 
+@description('Name of the authentication client secret in the key vault')
+param authClientSecretName string = 'AZURE-AUTH-CLIENT-SECRET'
 
+@description('Client secret of the authentication client')
+@secure()
+param authClientSecret string = ''
 
 /* -------------------------------------------------------------------------- */
 
-
-var functionAppDockerImage = 'DOCKER|moneta.azurecr.io/moneta-ai-backend:v1.1.6' 
+var functionAppDockerImage = 'DOCKER|moneta.azurecr.io/moneta-ai-backend:v1.1.6'
 var webappAppDockerImage = 'DOCKER|moneta.azurecr.io/moneta-ai-frontend:v1.1.6'
 
 @description('Name of the Resource Group')
@@ -76,9 +86,6 @@ param cosmosDbCRMContainerName string = 'clientdata'
 // Define the storage account name
 param storageAccountName string = 'sa${uniqueString(resourceGroup().id)}'
 
-@description('Name of the Function App')
-param functionAppName string = toLower('func${uniqueString(resourceGroup().id)}')
-
 @description('Application Insights Location')
 param appInsightsLocation string = location
 
@@ -107,8 +114,6 @@ param overrideAiSearchEndpoint string = ''
 @secure()
 param overrideAiSearchKey string = ''
 
-
-
 /* -------------------------------------------------------------------------- */
 /*                                  VARIABLES                                 */
 /* -------------------------------------------------------------------------- */
@@ -123,24 +128,35 @@ var resourceToken = toLower(uniqueString(subscription().id, environmentName, loc
 var alphaNumericEnvironmentName = replace(replace(environmentName, '-', ''), ' ', '')
 
 @description('Tags to be applied to all provisioned resources')
-var tags = union({  
-  'azd-env-name': environmentName
-   solution: 'moneta-agentic-gbb-ai-1.0'    
- }, extraTags)
+var tags = union(
+  {
+    'azd-env-name': environmentName
+    solution: 'moneta-agentic-gbb-ai-1.0'
+  },
+  extraTags
+)
 
 /* --------------------- Globally Unique Resource Names --------------------- */
 
-var _containerRegistryName = !empty(containerRegistryName) ? containerRegistryName : take('${abbreviations.containerRegistryRegistries}${take(alphaNumericEnvironmentName, 35)}${resourceToken}', 50)
+var _containerRegistryName = !empty(containerRegistryName)
+  ? containerRegistryName
+  : take('${abbreviations.containerRegistryRegistries}${take(alphaNumericEnvironmentName, 35)}${resourceToken}', 50)
 
 /* ----------------------------- Resource Names ----------------------------- */
 
-var _frontendContainerAppName = !empty(frontendContainerAppName) ? frontendContainerAppName : take('${abbreviations.appContainerApps}frontend-${environmentName}', 32)
-var _backendContainerAppName = !empty(backendContainerAppName) ? backendContainerAppName : take('${abbreviations.appContainerApps}backend-${environmentName}', 32)
-var _containerAppsEnvironmentName = !empty(containerAppsEnvironmentName) ? containerAppsEnvironmentName : take('${abbreviations.appManagedEnvironments}${environmentName}', 60)
+var _frontendContainerAppName = !empty(frontendContainerAppName)
+  ? frontendContainerAppName
+  : take('${abbreviations.appContainerApps}frontend-${environmentName}', 32)
+var _backendContainerAppName = !empty(backendContainerAppName)
+  ? backendContainerAppName
+  : take('${abbreviations.appContainerApps}backend-${environmentName}', 32)
+var _containerAppsEnvironmentName = !empty(containerAppsEnvironmentName)
+  ? containerAppsEnvironmentName
+  : take('${abbreviations.appManagedEnvironments}${environmentName}', 60)
 var _appIdentityName = take('${abbreviations.managedIdentityUserAssignedIdentities}${environmentName}', 32)
+var _keyVaultName = take('${abbreviations.keyVaultVaults}${alphaNumericEnvironmentName}${resourceToken}', 24)
 
 /* -------------------------------------------------------------------------- */
-
 
 // Variables for AI Search index names and configurations
 var aiSearchCioIndexName = 'cio-index'
@@ -152,7 +168,6 @@ var aiSearchInsSemanticConfiguration = 'ins-semantic-config'
 var aiSearchVectorFieldName = 'contentVector'
 
 // Define common tags  
-
 
 /* -------------------------------------------------------------------------- */
 /*                                  RESOURCES                                 */
@@ -186,7 +201,7 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01'
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId:  logAnalytics.properties.customerId
+        customerId: logAnalytics.properties.customerId
         sharedKey: logAnalytics.listKeys().primarySharedKey
       }
     }
@@ -205,14 +220,13 @@ module frontendApp 'modules/app/containerapp.bicep' = {
     identityId: appIdentity.outputs.identityId
     containerAppsEnvironmentName: containerAppsEnvironment.name
     containerRegistryName: containerRegistry.outputs.name
-    exists: frontendAppExists
+    exists: frontendExists
     serviceName: 'frontend' // Must match the service name in azure.yaml
     env: {
       AZ_REG_APP_CLIENT_ID: ''
       AZ_TENANT_ID: ''
       BACKEND_ENDPOINT: backendApp.outputs.URL
       DISABLE_LOGIN: 'True'
-      FUNCTION_APP_KEY: ''
       WEB_REDIRECT_URI: ''
 
       // required for container app daprAI
@@ -221,7 +235,57 @@ module frontendApp 'modules/app/containerapp.bicep' = {
       // required for managed identity
       AZURE_CLIENT_ID: appIdentity.outputs.clientId
     }
+    keyvaultIdentities: {
+      'microsoft-provider-authentication-secret': {
+        keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
+        identity: appIdentity.outputs.identityId
+      }
+    }
   }
+  dependsOn: [
+    keyVault
+  ]
+}
+
+module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
+  name: 'keyVault'
+  scope: resourceGroup()
+  params: {
+    location: location
+    tags: tags
+    name: _keyVaultName
+    enableRbacAuthorization: true
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'Key Vault Secrets User'
+        principalId: appIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        principalId: azurePrincipalId
+        roleDefinitionIdOrName: 'Key Vault Administrator'
+      }
+    ]
+    secrets: [
+      {
+        name: authClientSecretName
+        value: authClientSecret
+      }
+    ]
+  }
+}
+
+module auth 'modules/app/container-apps-auth.bicep' = {
+  name: 'frontend-container-app-auth-module'
+  params: {
+    name: frontendApp.outputs.name
+    clientId: authClientId
+    clientSecretName: 'microsoft-provider-authentication-secret'
+    openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
+  }
+  dependsOn: [
+    keyVault
+  ]
 }
 
 /* ------------------------------ Backend App ------------------------------- */
@@ -235,7 +299,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
     identityId: appIdentity.outputs.identityId // TODO: revisit having a separate identity for the frontend app
     containerAppsEnvironmentName: containerAppsEnvironment.name
     containerRegistryName: containerRegistry.outputs.name
-    exists: backendAppExists
+    exists: backendExists
     serviceName: 'backend' // Must match the service name in azure.yaml
     env: {
       AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
@@ -268,7 +332,10 @@ resource backendAppStorageBlobDataContributorRole 'Microsoft.Authorization/roleA
   name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataContributor')
   scope: storageAccount
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe') // Storage Blob Data Contributor
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    ) // Storage Blob Data Contributor
     principalId: appIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -278,7 +345,10 @@ resource backendAppStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignm
   name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataOwner')
   scope: storageAccount
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b') // Storage Blob Data Owner
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+    ) // Storage Blob Data Owner
     principalId: appIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -288,7 +358,10 @@ resource backendAppStorageQueueDataContributorRole 'Microsoft.Authorization/role
   name: guid(storageAccount.id, _backendContainerAppName, 'StorageQueueDataContributor')
   scope: storageAccount
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88') // Storage Queue Data Contributor
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+    ) // Storage Queue Data Contributor
     principalId: appIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -298,7 +371,10 @@ resource backendAppStorageAccountContributorRole 'Microsoft.Authorization/roleAs
   name: guid(storageAccount.id, _backendContainerAppName, 'StorageAccountContributor')
   scope: storageAccount
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab') // Storage Account Contributor
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '17d1049b-9a84-46fb-8f53-869881c3d3ab'
+    ) // Storage Account Contributor
     principalId: appIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -338,14 +414,14 @@ resource cosmosDbDataContributorRoleAssignment 'Microsoft.DocumentDB/databaseAcc
 /* -------------------------------------------------------------------------- */
 
 // Log Analytics Workspace
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {  
-  name: 'logAnalyticsWorkspace'  
-  location: location  
-  properties: {  
-    retentionInDays: 30  
-  }  
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
+  name: 'logAnalyticsWorkspace'
+  location: location
+  properties: {
+    retentionInDays: 30
+  }
   tags: tags
-}  
+}
 
 // Application Insights instance
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
@@ -478,7 +554,6 @@ resource cosmosDbCRMContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
   tags: tags
 }
 
-
 // Storage Account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   name: storageAccountName
@@ -526,11 +601,14 @@ resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' = 
 }
 
 // Get AI Search admin key
-var aiSearchAdminKey = empty(overrideAiSearchKey) ? listAdminKeys(aiSearchService.id, '2020-08-01').primaryKey : overrideAiSearchKey
+var aiSearchAdminKey = empty(overrideAiSearchKey)
+  ? listAdminKeys(aiSearchService.id, '2020-08-01').primaryKey
+  : overrideAiSearchKey
 
 // Set AI Search endpoint
-var aiSearchEndpoint = empty(overrideAiSearchEndpoint) ? 'https://${aiSearchService.name}.search.windows.net' : overrideAiSearchEndpoint
-
+var aiSearchEndpoint = empty(overrideAiSearchEndpoint)
+  ? 'https://${aiSearchService.name}.search.windows.net'
+  : overrideAiSearchEndpoint
 
 import * as role from './role.bicep'
 
@@ -582,14 +660,13 @@ resource userSearchServiceContributorRoleAssignment 'Microsoft.Authorization/rol
 @description('The endpoint of the container registry.') // necessary for azd deploy
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
 
-@description('Endpoint URL of the Frontend service') 
-output SERVICE_FRONTEND_ENDPOINTS array = [ frontendApp.outputs.URL ]	
+@description('Endpoint URL of string Frontend service') // reused by identity management scripts
+output SERVICE_FRONTEND_URL string = frontendApp.outputs.URL
 
-@description('Endpoint URL of the Backend service') 
-output SERVICE_BACKEND_ENDPOINTS array = [ backendApp.outputs.URL	]
+@description('Endpoint URL of the Backend service') // reused by identity management scripts
+output SERVICE_BACKEND_URL string = backendApp.outputs.URL
 
 /* -------------------------------------------------------------------------- */
-
 
 output AI_SEARCH_ENDPOINT string = aiSearchEndpoint
 output AI_SEARCH_PRINCIPAL_ID string = identity.properties.principalId
@@ -599,7 +676,6 @@ output AZURE_OPENAI_DEPLOYMENT_NAME string = azureOpenaiDeploymentName
 output AZURE_OPENAI_ENDPOINT string = azureOpenaiEndpoint
 output AZURE_OPENAI_MODEL string = azureOpenaiDeploymentName
 output AZURE_PRINCIPAL_ID string = azurePrincipalId
-output FUNCTION_APP_NAME string = functionAppName
 output COSMOSDB_ACCOUNT_NAME string = cosmosDbAccountName
 output COSMOSDB_ENDPOINT string = cosmosDbAccount.properties.documentEndpoint
 output COSMOSDB_DATABASE_NAME string = cosmosDbDatabaseName
@@ -621,7 +697,7 @@ output AI_SEARCH_INS_SEMANTIC_CONFIGURATION string = aiSearchInsSemanticConfigur
 output AI_SEARCH_VECTOR_FIELD_NAME string = aiSearchVectorFieldName
 
 // TODO: avoid outputting keys by using users's identity when running locally
-output AZURE_OPENAI_KEY string = azureOpenaiKey 
+output AZURE_OPENAI_KEY string = azureOpenaiKey
 output AZURE_SEARCH_KEY string = aiSearchAdminKey
 output AZURE_STORAGE_ACCOUNT_ID string = storageAccount.id
 
