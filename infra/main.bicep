@@ -19,7 +19,7 @@ param extraTags object = {}
 param authClientId string = ''
 
 @description('The auth tenant id for the frontend and backend app')
-param authTenantId string
+param authTenantId string = subscription().tenantId
 
 /* ---------------------------- Shared Resources ---------------------------- */
 
@@ -212,6 +212,7 @@ module containerRegistry 'modules/app/registry.bicep' = {
   params: {
     location: location
     identityName: appIdentity.outputs.name
+    backendIdentityName: backendIdentity.outputs.name
     tags: tags
     name: '${abbreviations.containerRegistryRegistries}${resourceToken}'
   }
@@ -286,6 +287,11 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
         principalType: 'ServicePrincipal'
       }
       {
+        roleDefinitionIdOrName: 'Key Vault Secrets User'
+        principalId: backendIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+      {
         principalId: azurePrincipalId
         roleDefinitionIdOrName: 'Key Vault Administrator'
       }
@@ -331,7 +337,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
       AI_SEARCH_FUNDS_INDEX_NAME: aiSearchFundsIndexName
       AI_SEARCH_INS_INDEX_NAME: aiSearchInsIndexName
       AI_SEARCH_INS_SEMANTIC_CONFIGURATION: aiSearchInsSemanticConfiguration
-      // AI_SEARCH_KEY: aiSearchAdminKey
+      // AI_SEARCH_KEY: ''
       AZURE_OPENAI_API_VERSION: azureOpenaiApiVersion
       AZURE_OPENAI_DEPLOYMENT: azureOpenaiDeploymentName
       AZURE_OPENAI_ENDPOINT: azureOpenaiEndpoint
@@ -560,7 +566,7 @@ module storage 'br/public:avm/res/storage/storage-account:0.9.1' = {
     roleAssignments: [
       {
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-        principalId: searchIdentity.id
+        principalId: searchIdentity.properties.principalId
         principalType: 'ServicePrincipal'
       }
       {
@@ -633,8 +639,6 @@ module searchService 'br/public:avm/res/search/search-service:0.7.1' = {
   params: {
     name: toLower('search${uniqueString(resourceGroup().id)}')
     location: location
-    // name: 'aisearch-${resourceToken}'
-    // location: !empty(searchServiceLocation) ? searchServiceLocation : location
     tags: tags
     // disableLocalAuth: true
     // semanticSearch: 'standard'
@@ -667,11 +671,6 @@ module searchService 'br/public:avm/res/search/search-service:0.7.1' = {
     ]
   }
 }
-
-// // Set AI Search endpoint
-// var aiSearchEndpoint = empty(overrideAiSearchEndpoint)
-//   ? 'https://${aiSearchService.name}.search.windows.net'
-//   : overrideAiSearchEndpoint
 
 /* -------------------------------------------------------------------------- */
 /*                                   OUTPUTS                                  */
