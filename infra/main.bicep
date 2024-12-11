@@ -327,7 +327,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
     serviceName: 'backend' // Must match the service name in azure.yaml
     env: {
       AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
-      AI_SEARCH_ENDPOINT: aiSearchEndpoint
+      AI_SEARCH_ENDPOINT: 'https://${searchService.outputs.name}.search.windows.net'
       AI_SEARCH_FUNDS_INDEX_NAME: aiSearchFundsIndexName
       AI_SEARCH_INS_INDEX_NAME: aiSearchInsIndexName
       AI_SEARCH_INS_SEMANTIC_CONFIGURATION: aiSearchInsSemanticConfiguration
@@ -352,57 +352,6 @@ module backendApp 'modules/app/containerapp.bicep' = {
   }
 }
 
-resource backendAppStorageBlobDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataContributor')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    ) // Storage Blob Data Contributor
-    principalId: backendIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource backendAppStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataOwner')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
-    ) // Storage Blob Data Owner
-    principalId: backendIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource backendAppStorageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storageAccount.id, _backendContainerAppName, 'StorageQueueDataContributor')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
-    ) // Storage Queue Data Contributor
-    principalId: backendIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource backendAppStorageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storageAccount.id, _backendContainerAppName, 'StorageAccountContributor')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '17d1049b-9a84-46fb-8f53-869881c3d3ab'
-    ) // Storage Account Contributor
-    principalId: backendIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
 
 // Cosmos DB Role Assignments
 resource cosmosDbRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
@@ -622,6 +571,58 @@ module storage 'br/public:avm/res/storage/storage-account:0.9.1' = {
     ]
   }
 }
+
+// resource backendAppStorageBlobDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+//   name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataContributor')
+//   scope: storageAccount
+//   properties: {
+//     roleDefinitionId: subscriptionResourceId(
+//       'Microsoft.Authorization/roleDefinitions',
+//       'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+//     ) // Storage Blob Data Contributor
+//     principalId: backendIdentity.outputs.principalId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
+
+// resource backendAppStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+//   name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataOwner')
+//   scope: storageAccount
+//   properties: {
+//     roleDefinitionId: subscriptionResourceId(
+//       'Microsoft.Authorization/roleDefinitions',
+//       'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+//     ) // Storage Blob Data Owner
+//     principalId: backendIdentity.outputs.principalId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
+
+// resource backendAppStorageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+//   name: guid(storageAccount.id, _backendContainerAppName, 'StorageQueueDataContributor')
+//   scope: storageAccount
+//   properties: {
+//     roleDefinitionId: subscriptionResourceId(
+//       'Microsoft.Authorization/roleDefinitions',
+//       '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+//     ) // Storage Queue Data Contributor
+//     principalId: backendIdentity.outputs.principalId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
+
+// resource backendAppStorageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+//   name: guid(storageAccount.id, _backendContainerAppName, 'StorageAccountContributor')
+//   scope: storageAccount
+//   properties: {
+//     roleDefinitionId: subscriptionResourceId(
+//       'Microsoft.Authorization/roleDefinitions',
+//       '17d1049b-9a84-46fb-8f53-869881c3d3ab'
+//     ) // Storage Account Contributor
+//     principalId: backendIdentity.outputs.principalId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
 
 /* -------------------------------------------------------------------------- */
 // AI Search Service (Azure Cognitive Search)
