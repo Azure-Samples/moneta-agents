@@ -1,3 +1,5 @@
+import * as role from './modules/role.bicep'
+
 /* -------------------------------------------------------------------------- */
 /*                                 PARAMETERS                                 */
 /* -------------------------------------------------------------------------- */
@@ -176,9 +178,7 @@ var aiSearchVectorFieldName = 'contentVector'
 // Define common tags  
 
 /* -------------------------------------------------------------------------- */
-/*                                  RESOURCES                                 */
-/* -------------------------------------------------------------------------- */
-
+// [ IDENTITIES ] 
 module appIdentity './modules/app/identity.bicep' = {
   name: 'appIdentity'
   scope: resourceGroup()
@@ -187,6 +187,24 @@ module appIdentity './modules/app/identity.bicep' = {
     identityName: _appIdentityName
   }
 }
+
+module backendIdentity './modules/app/identity-backend.bicep' = {
+  name: 'backendIdentity'
+  scope: resourceGroup()
+  params: {
+    location: location
+    identityName: 'backend-${_appIdentityName}'
+  }
+}
+
+resource searchIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'aiSearchService'
+  location: location
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                  RESOURCES                                 */
+/* -------------------------------------------------------------------------- */
 
 module containerRegistry 'modules/app/registry.bicep' = {
   name: 'registry'
@@ -302,7 +320,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
   params: {
     name: _backendContainerAppName
     tags: tags
-    identityId: appIdentity.outputs.identityId // TODO: revisit having a separate identity for the frontend app
+    identityId: backendIdentity.outputs.identityId 
     containerAppsEnvironmentName: containerAppsEnvironment.name
     containerRegistryName: containerRegistry.outputs.name
     exists: backendExists
@@ -313,7 +331,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
       AI_SEARCH_FUNDS_INDEX_NAME: aiSearchFundsIndexName
       AI_SEARCH_INS_INDEX_NAME: aiSearchInsIndexName
       AI_SEARCH_INS_SEMANTIC_CONFIGURATION: aiSearchInsSemanticConfiguration
-      AI_SEARCH_KEY: aiSearchAdminKey
+      // AI_SEARCH_KEY: aiSearchAdminKey
       AZURE_OPENAI_API_VERSION: azureOpenaiApiVersion
       AZURE_OPENAI_DEPLOYMENT: azureOpenaiDeploymentName
       AZURE_OPENAI_ENDPOINT: azureOpenaiEndpoint
@@ -329,7 +347,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
 
       // required for managed identity
-      AZURE_CLIENT_ID: appIdentity.outputs.clientId
+      AZURE_CLIENT_ID: backendIdentity.outputs.clientId
     }
   }
 }
@@ -342,7 +360,7 @@ resource backendAppStorageBlobDataContributorRole 'Microsoft.Authorization/roleA
       'Microsoft.Authorization/roleDefinitions',
       'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
     ) // Storage Blob Data Contributor
-    principalId: appIdentity.outputs.principalId
+    principalId: backendIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -355,7 +373,7 @@ resource backendAppStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignm
       'Microsoft.Authorization/roleDefinitions',
       'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
     ) // Storage Blob Data Owner
-    principalId: appIdentity.outputs.principalId
+    principalId: backendIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -368,7 +386,7 @@ resource backendAppStorageQueueDataContributorRole 'Microsoft.Authorization/role
       'Microsoft.Authorization/roleDefinitions',
       '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
     ) // Storage Queue Data Contributor
-    principalId: appIdentity.outputs.principalId
+    principalId: backendIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -381,7 +399,7 @@ resource backendAppStorageAccountContributorRole 'Microsoft.Authorization/roleAs
       'Microsoft.Authorization/roleDefinitions',
       '17d1049b-9a84-46fb-8f53-869881c3d3ab'
     ) // Storage Account Contributor
-    principalId: appIdentity.outputs.principalId
+    principalId: backendIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -396,7 +414,7 @@ resource cosmosDbRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04
   name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbRoleDefinition.id)
   scope: cosmosDbAccount
   properties: {
-    principalId: appIdentity.outputs.principalId
+    principalId: backendIdentity.outputs.principalId
     roleDefinitionId: cosmosDbRoleDefinition.id
     principalType: 'ServicePrincipal'
   }
@@ -412,7 +430,7 @@ resource cosmosDbDataContributorRoleAssignment 'Microsoft.DocumentDB/databaseAcc
   name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbDataContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
-    principalId: appIdentity.outputs.principalId
+    principalId: backendIdentity.outputs.principalId
     scope: cosmosDbAccount.id
   }
 }
@@ -440,6 +458,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
+/* -------------------------------------------------------------------------- */
 // Cosmos DB Account
 resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
   name: cosmosDbAccountName
@@ -560,99 +579,98 @@ resource cosmosDbCRMContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
   tags: tags
 }
 
+/* -------------------------------------------------------------------------- */
 // Storage Account
-resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
+var storageContainerName = 'default'
+module storage 'br/public:avm/res/storage/storage-account:0.9.1' = {
   name: storageAccountName
-  location: location
-  sku: {
-    name: 'Standard_LRS'
-  }
-  kind: 'StorageV2'
-  properties: {
-    accessTier: 'Hot'
-  }
-  tags: tags
-}
-
-// Blob Service
-resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2022-05-01' = {
-  parent: storageAccount
-  name: 'default'
-}
-
-resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: 'aiSearchService'
-  location: location
-}
-
-// AI Search Service (Azure Cognitive Search)
-resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' = if (empty(overrideAiSearchEndpoint)) {
-  name: toLower('search${uniqueString(resourceGroup().id)}')
-  location: location
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identity.id}': {}
+  scope: resourceGroup()
+  params: {
+    name: storageAccountName
+    location: location
+    tags: tags
+    kind: 'StorageV2'
+    skuName: 'Standard_LRS'
+    publicNetworkAccess: 'Enabled' // Necessary for uploading documents to storage container
+    networkAcls: {
+      defaultAction: 'Allow'
+      bypass: 'AzureServices'
     }
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+    blobServices: {
+      deleteRetentionPolicyDays: 2
+      deleteRetentionPolicyEnabled: true
+      containers: [
+        {
+          name: storageContainerName
+          publicAccess: 'None'
+        }
+      ]
+    }
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        principalId: searchIdentity.id
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        principalId: azurePrincipalId
+        principalType: 'User'
+      }
+    ]
   }
-  sku: {
-    name: 'basic'
-  }
-  properties: {
+}
+
+/* -------------------------------------------------------------------------- */
+// AI Search Service (Azure Cognitive Search)
+
+module searchService 'br/public:avm/res/search/search-service:0.7.1' = {
+  name: 'search-service'
+  scope: resourceGroup()
+  params: {
+    name: toLower('search${uniqueString(resourceGroup().id)}')
+    location: location
+    // name: 'aisearch-${resourceToken}'
+    // location: !empty(searchServiceLocation) ? searchServiceLocation : location
+    tags: tags
+    // disableLocalAuth: true
+    // semanticSearch: 'standard'
+    sku: 'basic'
     replicaCount: 1
     partitionCount: 1
     hostingMode: 'default'
-  }
-  tags: tags
-}
-
-// Get AI Search admin key
-var aiSearchAdminKey = empty(overrideAiSearchKey)
-  ? listAdminKeys(aiSearchService.id, '2020-08-01').primaryKey
-  : overrideAiSearchKey
-
-// Set AI Search endpoint
-var aiSearchEndpoint = empty(overrideAiSearchEndpoint)
-  ? 'https://${aiSearchService.name}.search.windows.net'
-  : overrideAiSearchEndpoint
-
-import * as role from './role.bicep'
-
-resource userDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, azurePrincipalId, 'Storage Blob Data Contributor')
-  scope: storageAccount
-  properties: {
-    principalId: azurePrincipalId
-    roleDefinitionId: role.definitionId('Storage Blob Data Contributor')
-  }
-}
-
-resource aisearchDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, identity.id, 'Storage Blob Data Contributor')
-  scope: storageAccount
-  properties: {
-    principalId: identity.properties.principalId
-    roleDefinitionId: role.definitionId('Storage Blob Data Contributor')
+    managedIdentities: { userAssignedResourceIds: [searchIdentity.id] }
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'Search Index Data Contributor'
+        principalId: backendIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'Search Service Contributor'
+        principalId: backendIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'Search Index Data Contributor'
+        principalId: azurePrincipalId
+        principalType: 'User'
+      }
+      {
+        roleDefinitionIdOrName: 'Search Service Contributor'
+        principalId: azurePrincipalId
+        principalType: 'User'
+      }
+    ]
   }
 }
 
-resource userSearchIndexDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(aiSearchService.id, azurePrincipalId, 'Search Index Data Contributor')
-  scope: aiSearchService
-  properties: {
-    principalId: azurePrincipalId
-    roleDefinitionId: role.definitionId('Search Index Data Contributor')
-  }
-}
-
-resource userSearchServiceContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(aiSearchService.id, azurePrincipalId, 'Search Service Contributor')
-  scope: aiSearchService
-  properties: {
-    principalId: azurePrincipalId
-    roleDefinitionId: role.definitionId('Search Service Contributor')
-  }
-}
+// // Set AI Search endpoint
+// var aiSearchEndpoint = empty(overrideAiSearchEndpoint)
+//   ? 'https://${aiSearchService.name}.search.windows.net'
+//   : overrideAiSearchEndpoint
 
 /* -------------------------------------------------------------------------- */
 /*                                   OUTPUTS                                  */
@@ -674,20 +692,23 @@ output SERVICE_BACKEND_URL string = backendApp.outputs.URL
 
 /* -------------------------------------------------------------------------- */
 
-output AI_SEARCH_ENDPOINT string = aiSearchEndpoint
-output AI_SEARCH_PRINCIPAL_ID string = identity.properties.principalId
-output AI_SEARCH_IDENTITY_ID string = identity.id
-output AZURE_OPENAI_API_VERSION string = azureOpenaiApiVersion
-output AZURE_OPENAI_DEPLOYMENT_NAME string = azureOpenaiDeploymentName
-output AZURE_OPENAI_ENDPOINT string = azureOpenaiEndpoint
-output AZURE_OPENAI_MODEL string = azureOpenaiDeploymentName
-output AZURE_PRINCIPAL_ID string = azurePrincipalId
 output COSMOSDB_ACCOUNT_NAME string = cosmosDbAccountName
+
 output COSMOSDB_ENDPOINT string = cosmosDbAccount.properties.documentEndpoint
 output COSMOSDB_DATABASE_NAME string = cosmosDbDatabaseName
 output COSMOSDB_CONTAINER_CLIENT_NAME string = cosmosDbCRMContainerName
 output COSMOSDB_CONTAINER_FSI_BANK_USER_NAME string = cosmosDbBankingContainerName
 output COSMOSDB_CONTAINER_FSI_INS_USER_NAME string = cosmosDbInsuranceContainerName
+
+
+output AI_SEARCH_ENDPOINT string = 'https://${searchService.outputs.name}.search.windows.net'
+output AI_SEARCH_PRINCIPAL_ID string = searchIdentity.properties.principalId
+output AI_SEARCH_IDENTITY_ID string = searchIdentity.id
+output AZURE_OPENAI_API_VERSION string = azureOpenaiApiVersion
+output AZURE_OPENAI_DEPLOYMENT_NAME string = azureOpenaiDeploymentName
+output AZURE_OPENAI_ENDPOINT string = azureOpenaiEndpoint
+output AZURE_OPENAI_MODEL string = azureOpenaiDeploymentName
+output AZURE_PRINCIPAL_ID string = azurePrincipalId
 output AZURE_OPENAI_EMBEDDING_MODEL_NAME string = azureOpenaiEmbeddingModelName
 output AZURE_OPENAI_EMBEDDING_DIMENSIONS string = '1536'
 output CHUNK_SIZE string = '2000'
@@ -704,7 +725,8 @@ output AI_SEARCH_VECTOR_FIELD_NAME string = aiSearchVectorFieldName
 
 // TODO: avoid outputting keys by using users's identity when running locally
 output AZURE_OPENAI_KEY string = azureOpenaiKey
-output AZURE_SEARCH_KEY string = aiSearchAdminKey
-output AZURE_STORAGE_ACCOUNT_ID string = storageAccount.id
 
-output BLOB_ACCOUNT_URL string = storageAccount.properties.primaryEndpoints.blob
+output AZURE_STORAGE_ACCOUNT_ID string = storage.outputs.resourceId
+
+// output BLOB_ACCOUNT_URL string = storageAccount.properties.primaryEndpoints.blob
+output BLOB_ACCOUNT_URL string = storage.outputs.primaryBlobEndpoint
