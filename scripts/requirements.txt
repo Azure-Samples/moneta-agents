@@ -9,3 +9,4 @@ python-dotenv
 azure-identity
 azure-storage-blob==12.23.1
 azure-search-documents==11.6.0b7
+azure-cosmos
