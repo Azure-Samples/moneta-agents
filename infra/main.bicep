@@ -54,6 +54,10 @@ param authClientSecretName string = 'AZURE-AUTH-CLIENT-SECRET'
 @secure()
 param authClientSecret string = ''
 
+@maxLength(255)
+@description('Name of the application insights to deploy. If not specified, a name will be generated. The maximum length is 255 characters.')
+param applicationInsightsName string = ''
+
 /* -------------------------------------------------------------------------- */
 
 var functionAppDockerImage = 'DOCKER|moneta.azurecr.io/moneta-ai-backend:v1.1.6'
@@ -155,6 +159,8 @@ var _containerAppsEnvironmentName = !empty(containerAppsEnvironmentName)
   : take('${abbreviations.appManagedEnvironments}${environmentName}', 60)
 var _appIdentityName = take('${abbreviations.managedIdentityUserAssignedIdentities}${environmentName}', 32)
 var _keyVaultName = take('${abbreviations.keyVaultVaults}${alphaNumericEnvironmentName}${resourceToken}', 24)
+var _applicationInsightsName = !empty(applicationInsightsName) ? applicationInsightsName : take('${abbreviations.insightsComponents}${environmentName}', 255)
+
 
 /* -------------------------------------------------------------------------- */
 
@@ -425,7 +431,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
 
 // Application Insights instance
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: '${functionAppName}-ai'
+  name: _applicationInsightsName
   location: appInsightsLocation
   kind: 'web'
   properties: {
