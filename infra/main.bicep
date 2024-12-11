@@ -717,9 +717,8 @@ output AZURE_OPENAI_API_VERSION string = azureOpenaiApiVersion
 output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[1].name
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
 output AZURE_PRINCIPAL_ID string = azurePrincipalId
-output AZURE_OPENAI_EMBEDDING_MODEL_NAME string = deployments[0].name
-output AZURE_OPENAI_EMBEDDING_DIMENSIONS string = '1536'
-output CHUNK_SIZE string = '2000'
+output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = deployments[0].name
+output AZURE_OPENAI_EMBEDDING_MODEL string = deployments[0].model.name
 
 output AI_SEARCH_CIO_INDEX_NAME string = 'moneta-cio-vector'
 output AI_SEARCH_CIO_SEMANTIC_CONFIGURATION string = 'default'
@@ -732,6 +731,4 @@ output AI_SEARCH_INS_SEMANTIC_CONFIGURATION string = aiSearchInsSemanticConfigur
 output AI_SEARCH_VECTOR_FIELD_NAME string = aiSearchVectorFieldName
 
 output AZURE_STORAGE_ACCOUNT_ID string = storage.outputs.resourceId
-
-// output BLOB_ACCOUNT_URL string = storageAccount.properties.primaryEndpoints.blob
-output BLOB_ACCOUNT_URL string = storage.outputs.primaryBlobEndpoint
+output AZURE_STORAGE_ACCOUNT_ENDPOINT string = storage.outputs.primaryBlobEndpoint

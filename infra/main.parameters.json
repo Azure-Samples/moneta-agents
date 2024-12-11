@@ -11,9 +11,6 @@
       "azurePrincipalId": {
         "value": "${AZURE_PRINCIPAL_ID}"
       },
-      "azureOpenaiKey": {
-        "value": "${AZURE_OPENAI_KEY}"
-      },
       "frontendExists": {
         "value": "${SERVICE_FRONTEND_RESOURCE_EXISTS=false}"
       },
