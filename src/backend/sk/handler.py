@@ -44,7 +44,8 @@ class SemanticKernelHandler:
             credential=DefaultAzureCredential(),
             service_endpoint = os.getenv('AI_SEARCH_ENDPOINT'),
             index_name = os.getenv('AI_SEARCH_INS_INDEX_NAME'),
-            semantic_configuration_name = os.getenv('AI_SEARCH_INS_SEMANTIC_CONFIGURATION'))
+            semantic_configuration_name = 'default')
+            # semantic_configuration_name = os.getenv('AI_SEARCH_INS_SEMANTIC_CONFIGURATION'))
 
         gpt4o_service = AzureChatCompletion(service_id="gpt-4o",
                                             endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),

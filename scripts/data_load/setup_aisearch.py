@@ -8,7 +8,7 @@ from azure.identity import AzureDeveloperCliCredential, DefaultAzureCredential
 from azure.search.documents.indexes import SearchIndexClient, SearchIndexerClient
 from azure.search.documents.indexes.models import (
     AzureOpenAIEmbeddingSkill,
-    AzureOpenAIVectorizerParameters,
+    AzureOpenAIParameters,
     AzureOpenAIVectorizer,
     FieldMapping,
     HnswAlgorithmConfiguration,
@@ -25,7 +25,7 @@ from azure.search.documents.indexes.models import (
     SearchIndexerDataSourceConnection,
     SearchIndexerDataSourceType,
     SearchIndexerDataUserAssignedIdentity,
-    SearchIndexerIndexProjection,
+    SearchIndexerIndexProjections,
     SearchIndexerIndexProjectionSelector,
     SearchIndexerIndexProjectionsParameters,
     SearchIndexerSkillset,
@@ -43,6 +43,7 @@ from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
 from rich.logging import RichHandler
 
+EMBEDDINGS_DIMENSIONS = 3072
 
 def load_azd_env():
     """Get path to current azd env file and load file using python-dotenv"""
@@ -64,6 +65,8 @@ def setup_index(azure_credential, uami_id, index_name, azure_search_endpoint, az
     index_client = SearchIndexClient(azure_search_endpoint, azure_credential)
     indexer_client = SearchIndexerClient(azure_search_endpoint, azure_credential)
 
+    logger.info(f"Setting up Azure AI Search index: {azure_storage_container}")
+
     data_source_connections = indexer_client.get_data_source_connections()
     if index_name in [ds.name for ds in data_source_connections]:
         logger.info(f"Data source connection {index_name} already exists, not re-creating")
@@ -76,6 +79,7 @@ def setup_index(azure_credential, uami_id, index_name, azure_search_endpoint, az
                 connection_string=azure_storage_connection_string,
                 identity = SearchIndexerDataUserAssignedIdentity(user_assigned_identity=uami_id),
                 container=SearchIndexerDataContainer(name=azure_storage_container)))
+        
 
     index_names = [index.name for index in index_client.list_indexes()]
     if index_name in index_names:
@@ -105,7 +109,7 @@ def setup_index(azure_credential, uami_id, index_name, azure_search_endpoint, az
                     vectorizers=[
                         AzureOpenAIVectorizer(
                             name="openai_vectorizer",
-                            azure_open_ai_parameters=AzureOpenAIVectorizerParameters(
+                            azure_open_ai_parameters=AzureOpenAIParameters(
                                 resource_uri=azure_openai_embedding_endpoint,
                                 auth_identity=SearchIndexerDataUserAssignedIdentity(user_assigned_identity=uami_id),
                                 deployment_id=azure_openai_embedding_deployment,
@@ -156,7 +160,7 @@ def setup_index(azure_credential, uami_id, index_name, azure_search_endpoint, az
                         inputs=[InputFieldMappingEntry(name="text", source="/document/pages/*")],
                         outputs=[OutputFieldMappingEntry(name="embedding", target_name="text_vector")])
                 ],
-                index_projections=SearchIndexerIndexProjection(
+                index_projections=SearchIndexerIndexProjections(
                     selectors=[
                         SearchIndexerIndexProjectionSelector(
                             target_index_name=index_name,
@@ -238,34 +242,9 @@ if __name__ == "__main__":
     # AVAILABLE
     azure_credential = DefaultAzureCredential()
     
-    
-    endpoint = os.environ["AI_SEARCH_ENDPOINT"]
-
-    account_url = os.getenv("BLOB_ACCOUNT_URL")
-    azure_openai_endpoint = os.environ["AZURE_OPENAI_ENDPOINT"]
-
-    azure_openai_embedding_deployment = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-large")
-    azure_openai_model_name = os.getenv("AZURE_OPENAI_EMBEDDING_MODEL_NAME", "text-embedding-3-large")
-
-    # Used to name index, indexer, data source and skillset
-    # UAMI_ID = os.environ["AZURE_USER_ASSIGNED_IDENTITY_ID"]
-    # AZURE_OPENAI_EMBEDDING_ENDPOINT = os.environ["AZURE_OPENAI_EMBEDDING_ENDPOINT"]
-    # AZURE_OPENAI_EMBEDDING_DEPLOYMENT = os.environ["AZURE_OPENAI_EMBEDDING_DEPLOYMENT"]
-    # AZURE_OPENAI_EMBEDDING_MODEL = os.environ["AZURE_OPENAI_EMBEDDING_MODEL"]
-    # EMBEDDINGS_DIMENSIONS = 3072
-    
-    # AZURE_SEARCH_ENDPOINT = os.environ["AZURE_SEARCH_ENDPOINT"]
-    # AZURE_STORAGE_ENDPOINT = os.environ["AZURE_STORAGE_ENDPOINT"]
-    # AZURE_STORAGE_CONNECTION_STRING = os.environ["AZURE_STORAGE_CONNECTION_STRING"]
-
-
-    # AZURE_SEARCH_INDEX = os.environ["AZURE_SEARCH_INDEX"] # index name
-    # AZURE_STORAGE_CONTAINER = os.environ["AZURE_STORAGE_CONTAINER"]
-    
     AZURE_OPENAI_EMBEDDING_ENDPOINT = os.environ["AZURE_OPENAI_ENDPOINT"]
     AZURE_OPENAI_EMBEDDING_DEPLOYMENT = os.environ["AZURE_OPENAI_EMBEDDING_DEPLOYMENT"]
     AZURE_OPENAI_EMBEDDING_MODEL = os.environ["AZURE_OPENAI_EMBEDDING_MODEL"]
-    EMBEDDINGS_DIMENSIONS = 3072
     
     UAMI_ID = os.environ["AI_SEARCH_IDENTITY_ID"]
     AZURE_SEARCH_ENDPOINT = os.environ["AI_SEARCH_ENDPOINT"]
@@ -279,19 +258,19 @@ if __name__ == "__main__":
         print(container.name)
     
         setup_index(azure_credential,
-            index_name=f"${container.name}-index-2",
+            index_name=f"{container.name}",
             uami_id=UAMI_ID,
             azure_search_endpoint=AZURE_SEARCH_ENDPOINT,
             azure_storage_connection_string=AZURE_STORAGE_CONNECTION_STRING,
-            azure_storage_container=AZURE_STORAGE_CONTAINER,
+            azure_storage_container=container.name,
             azure_openai_embedding_endpoint=AZURE_OPENAI_EMBEDDING_ENDPOINT,
             azure_openai_embedding_deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
             azure_openai_embedding_model=AZURE_OPENAI_EMBEDDING_MODEL,
             azure_openai_embeddings_dimensions=EMBEDDINGS_DIMENSIONS)
 
         upload_documents(azure_credential,
-            indexer_name=AZURE_SEARCH_INDEX,
-            source_folder=os.path.join(os.path.dirname(__file__), "../..", "data"),
+            indexer_name=f"{container.name}",
+            source_folder=os.path.join(os.path.dirname(__file__), "../../src/data/ai-search-index", container.name),
             azure_search_endpoint=AZURE_SEARCH_ENDPOINT,
             azure_storage_endpoint=AZURE_STORAGE_ENDPOINT,
-            azure_storage_container=AZURE_STORAGE_CONTAINER)
+            azure_storage_container=container.name)

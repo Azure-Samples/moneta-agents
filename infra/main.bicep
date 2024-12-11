@@ -92,20 +92,6 @@ param storageAccountName string = 'sa${uniqueString(resourceGroup().id)}'
 @description('Application Insights Location')
 param appInsightsLocation string = location
 
-// // New parameters for Azure OpenAI
-// @description('Azure OpenAI Endpoint')
-// param azureOpenaiEndpoint string
-
-// @description('Azure OpenAI Key')
-// @secure()
-// param azureOpenaiKey string
-
-// @description('Azure OpenAI Model')
-// param azureOpenaiDeploymentName string
-
-// @description('Azure OpenAI embedding model deployment name')
-// param azureOpenaiEmbeddingModelName string = 'text-embedding-3-large'
-
 /* -------------------------------------------------------------------------- */
 /*                                  VARIABLES                                 */
 /* -------------------------------------------------------------------------- */
@@ -155,12 +141,12 @@ var _applicationInsightsName = !empty(applicationInsightsName) ? applicationInsi
 
 // Variables for AI Search index names and configurations
 var aiSearchCioIndexName = 'cio-index'
-var aiSearchCioSemanticConfiguration = 'cio-semantic-config'
+var aiSearchCioSemanticConfiguration = 'default'
 var aiSearchFundsIndexName = 'funds-index'
-var aiSearchFundsSemanticConfiguration = 'funds-semantic-config'
+var aiSearchFundsSemanticConfiguration = 'default'
 var aiSearchInsIndexName = 'ins-index'
-var aiSearchInsSemanticConfiguration = 'ins-semantic-config'
-var aiSearchVectorFieldName = 'contentVector'
+var aiSearchInsSemanticConfiguration = 'default'
+// var aiSearchVectorFieldName = 'contentVector'
 
 // Define common tags  
 
@@ -597,7 +583,6 @@ resource cosmosDbCRMContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
 
 /* -------------------------------------------------------------------------- */
 // Storage Account
-var storageContainerName = 'default'
 module storage 'br/public:avm/res/storage/storage-account:0.9.1' = {
   name: storageAccountName
   scope: resourceGroup()
@@ -619,7 +604,15 @@ module storage 'br/public:avm/res/storage/storage-account:0.9.1' = {
       deleteRetentionPolicyEnabled: true
       containers: [
         {
-          name: storageContainerName
+          name: aiSearchInsIndexName
+          publicAccess: 'None'
+        }
+        {
+          name: aiSearchCioIndexName
+          publicAccess: 'None'
+        }
+        {
+          name: aiSearchFundsIndexName
           publicAccess: 'None'
         }
       ]
@@ -728,7 +721,7 @@ output AI_SEARCH_FUNDS_SEMANTIC_CONFIGURATION string = 'default'
 output AI_SEARCH_INS_INDEX_NAME string = aiSearchInsIndexName
 output AI_SEARCH_INS_SEMANTIC_CONFIGURATION string = aiSearchInsSemanticConfiguration
 
-output AI_SEARCH_VECTOR_FIELD_NAME string = aiSearchVectorFieldName
+// output AI_SEARCH_VECTOR_FIELD_NAME string = aiSearchVectorFieldName
 
 output AZURE_STORAGE_ACCOUNT_ID string = storage.outputs.resourceId
 output AZURE_STORAGE_ACCOUNT_ENDPOINT string = storage.outputs.primaryBlobEndpoint
