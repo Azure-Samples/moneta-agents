@@ -46,5 +46,5 @@ az cosmosdb sql role assignment create \
     --principal-id $AZURE_PRINCIPAL_ID \
     --scope "$cosmosdb_resource_id"
 
-python ./scripts/data_upload.py
-python ./scripts/data_indexing.py
+python3 ./scripts/data_upload.py
+python3 ./scripts/data_indexing.py

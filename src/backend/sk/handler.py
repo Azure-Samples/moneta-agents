@@ -48,7 +48,7 @@ class SemanticKernelHandler:
 
         gpt4o_service = AzureChatCompletion(service_id="gpt-4o",
                                             endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                                            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
+                                            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
                                             api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
                                             api_key=os.getenv("AZURE_OPENAI_KEY"))
         

@@ -260,12 +260,12 @@ module frontendApp 'modules/app/containerapp.bicep' = {
       // required for managed identity
       AZURE_CLIENT_ID: appIdentity.outputs.clientId
     }
-    keyvaultIdentities: {
-      'microsoft-provider-authentication-secret': {
-        keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
-        identity: appIdentity.outputs.identityId
-      }
-    }
+    // keyvaultIdentities: {
+    //   'microsoft-provider-authentication-secret': {
+    //     keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
+    //     identity: appIdentity.outputs.identityId
+    //   }
+    // }
   }
   dependsOn: [
     keyVault
@@ -578,32 +578,6 @@ module storage 'br/public:avm/res/storage/storage-account:0.9.1' = {
   }
 }
 
-// resource backendAppStorageBlobDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-//   name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataContributor')
-//   scope: storageAccount
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId(
-//       'Microsoft.Authorization/roleDefinitions',
-//       'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-//     ) // Storage Blob Data Contributor
-//     principalId: backendIdentity.outputs.principalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
-
-// resource backendAppStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-//   name: guid(storageAccount.id, _backendContainerAppName, 'StorageBlobDataOwner')
-//   scope: storageAccount
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId(
-//       'Microsoft.Authorization/roleDefinitions',
-//       'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
-//     ) // Storage Blob Data Owner
-//     principalId: backendIdentity.outputs.principalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
-
 // resource backendAppStorageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
 //   name: guid(storageAccount.id, _backendContainerAppName, 'StorageQueueDataContributor')
 //   scope: storageAccount
@@ -612,19 +586,6 @@ module storage 'br/public:avm/res/storage/storage-account:0.9.1' = {
 //       'Microsoft.Authorization/roleDefinitions',
 //       '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
 //     ) // Storage Queue Data Contributor
-//     principalId: backendIdentity.outputs.principalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
-
-// resource backendAppStorageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-//   name: guid(storageAccount.id, _backendContainerAppName, 'StorageAccountContributor')
-//   scope: storageAccount
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId(
-//       'Microsoft.Authorization/roleDefinitions',
-//       '17d1049b-9a84-46fb-8f53-869881c3d3ab'
-//     ) // Storage Account Contributor
 //     principalId: backendIdentity.outputs.principalId
 //     principalType: 'ServicePrincipal'
 //   }
