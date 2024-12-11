@@ -36,3 +36,8 @@ hooks:
         run: ./scripts/load_python_env.sh && ./scripts/postdeploy.sh;
         interactive: true
         continueOnError: false
+      windows:
+        shell: pwsh
+        run: ./scripts/load_python_env.ps1 && ./scripts/postdeploy.ps1;
+        interactive: true
+        continueOnError: false
