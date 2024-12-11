@@ -52,7 +52,7 @@ def rename_files_and_folders(directory_path: str):
                 os.rename(original_dir_path, sanitized_dir_path)
 
 current_working_directory = os.getcwd()
-data_directory_path = os.path.abspath(os.path.join(current_working_directory, 'data'))
+data_directory_path = os.path.abspath(os.path.join(current_working_directory, 'src/data'))
 rename_files_and_folders(data_directory_path)
 
 def upload_files_from_directory(directory_path: str):

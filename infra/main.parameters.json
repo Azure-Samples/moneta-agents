@@ -11,17 +11,8 @@
       "azurePrincipalId": {
         "value": "${AZURE_PRINCIPAL_ID}"
       },
-      "azureOpenaiEndpoint": {
-        "value": "${AZURE_OPENAI_ENDPOINT}"
-      },
       "azureOpenaiKey": {
         "value": "${AZURE_OPENAI_KEY}"
-      },
-      "azureOpenaiDeploymentName": {
-        "value": "${AZURE_OPENAI_DEPLOYMENT_NAME}"
-      },
-      "azureOpenaiApiVersion": {
-        "value": "${AZURE_OPENAI_API_VERSION}"
       },
       "frontendExists": {
         "value": "${SERVICE_FRONTEND_RESOURCE_EXISTS=false}"

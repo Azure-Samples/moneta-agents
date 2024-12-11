@@ -62,9 +62,6 @@ param applicationInsightsName string = ''
 
 /* -------------------------------------------------------------------------- */
 
-var functionAppDockerImage = 'DOCKER|moneta.azurecr.io/moneta-ai-backend:v1.1.6'
-var webappAppDockerImage = 'DOCKER|moneta.azurecr.io/moneta-ai-frontend:v1.1.6'
-
 @description('Name of the Resource Group')
 param resourceGroupName string = resourceGroup().name
 
@@ -95,30 +92,19 @@ param storageAccountName string = 'sa${uniqueString(resourceGroup().id)}'
 @description('Application Insights Location')
 param appInsightsLocation string = location
 
-// New parameters for Azure OpenAI
-@description('Azure OpenAI Endpoint')
-param azureOpenaiEndpoint string
+// // New parameters for Azure OpenAI
+// @description('Azure OpenAI Endpoint')
+// param azureOpenaiEndpoint string
 
-@description('Azure OpenAI Key')
-@secure()
-param azureOpenaiKey string
+// @description('Azure OpenAI Key')
+// @secure()
+// param azureOpenaiKey string
 
-@description('Azure OpenAI Model')
-param azureOpenaiDeploymentName string
+// @description('Azure OpenAI Model')
+// param azureOpenaiDeploymentName string
 
-@description('Azure OpenAI embedding model deployment name')
-param azureOpenaiEmbeddingModelName string = 'text-embedding-3-large'
-
-@description('Azure OpenAI API Version')
-param azureOpenaiApiVersion string = '2024-06-01'
-
-// Optional parameters to override AI Search settings
-@description('Override AI Search Endpoint (optional)')
-param overrideAiSearchEndpoint string = ''
-
-@description('Override AI Search Key (optional)')
-@secure()
-param overrideAiSearchKey string = ''
+// @description('Azure OpenAI embedding model deployment name')
+// param azureOpenaiEmbeddingModelName string = 'text-embedding-3-large'
 
 /* -------------------------------------------------------------------------- */
 /*                                  VARIABLES                                 */
@@ -141,6 +127,7 @@ var tags = union(
   },
   extraTags
 )
+
 
 /* --------------------- Globally Unique Resource Names --------------------- */
 
@@ -205,6 +192,73 @@ resource searchIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-0
 /* -------------------------------------------------------------------------- */
 /*                                  RESOURCES                                 */
 /* -------------------------------------------------------------------------- */
+
+
+// ------------------------
+// [ Array of OpenAI Model deployments ]
+param aoaiGpt4ModelName string = 'gpt-4o'
+param aoaiGpt4ModelVersion string = '2024-05-13'
+param azureOpenaiApiVersion string = '2024-08-01-preview'
+param embedModel string = 'text-embedding-3-large'
+
+var deployments = [
+  {
+    name: '${embedModel}-${resourceToken}'
+    model: {
+      format: 'OpenAI'
+      name: embedModel
+      version: '1'
+    }
+    sku: { 
+      name: 'Standard' 
+      capacity: 50 }
+  }
+  {
+    name: '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}-${resourceToken}'
+    model: {
+      format: 'OpenAI'
+      name: aoaiGpt4ModelName
+      version: aoaiGpt4ModelVersion
+    }
+    sku: { 
+      name: 'GlobalStandard'
+      capacity:  30
+    }
+  }]
+
+module openAi 'br/public:avm/res/cognitive-services/account:0.8.0' = {
+  name: 'openai'
+  scope: resourceGroup()
+  params: {
+    name: 'oai-${resourceToken}'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'aoai-${tags['azd-env-name']}' })
+    kind: 'OpenAI'
+    customSubDomainName: 'oai-${resourceToken}'
+    sku: 'S0'
+    deployments: deployments
+    disableLocalAuth: false
+    publicNetworkAccess: 'Enabled'
+    networkAcls: {}
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: backendIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: searchIdentity.properties.principalId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        principalId: azurePrincipalId
+        principalType: 'User'
+      }
+    ]
+  }
+}
 
 module containerRegistry 'modules/app/registry.bicep' = {
   name: 'registry'
@@ -337,11 +391,10 @@ module backendApp 'modules/app/containerapp.bicep' = {
       AI_SEARCH_FUNDS_INDEX_NAME: aiSearchFundsIndexName
       AI_SEARCH_INS_INDEX_NAME: aiSearchInsIndexName
       AI_SEARCH_INS_SEMANTIC_CONFIGURATION: aiSearchInsSemanticConfiguration
-      // AI_SEARCH_KEY: ''
       AZURE_OPENAI_API_VERSION: azureOpenaiApiVersion
-      AZURE_OPENAI_DEPLOYMENT: azureOpenaiDeploymentName
-      AZURE_OPENAI_ENDPOINT: azureOpenaiEndpoint
-      AZURE_OPENAI_KEY: azureOpenaiKey
+      AZURE_OPENAI_DEPLOYMENT: deployments[1].name
+      AZURE_OPENAI_ENDPOINT: openAi.outputs.endpoint
+      // AZURE_OPENAI_KEY: azureOpenaiKey
       COSMOSDB_CONTAINER_CLIENT_NAME: cosmosDbCRMContainerName
       COSMOSDB_CONTAINER_FSI_BANK_USER_NAME: cosmosDbBankingContainerName
       COSMOSDB_CONTAINER_FSI_INS_USER_NAME: cosmosDbInsuranceContainerName
@@ -357,7 +410,6 @@ module backendApp 'modules/app/containerapp.bicep' = {
     }
   }
 }
-
 
 // Cosmos DB Role Assignments
 resource cosmosDbRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
@@ -386,6 +438,16 @@ resource cosmosDbDataContributorRoleAssignment 'Microsoft.DocumentDB/databaseAcc
   properties: {
     roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
     principalId: backendIdentity.outputs.principalId
+    scope: cosmosDbAccount.id
+  }
+}
+
+resource cosmosDbDataContributorRoleAssignmentPrincipal 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2021-04-15' = {
+  parent: cosmosDbAccount
+  name: guid(cosmosDbAccount.id, azurePrincipalId, cosmosDbDataContributorRoleDefinition.id)
+  properties: {
+    roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
+    principalId: azurePrincipalId
     scope: cosmosDbAccount.id
   }
 }
@@ -578,19 +640,6 @@ module storage 'br/public:avm/res/storage/storage-account:0.9.1' = {
   }
 }
 
-// resource backendAppStorageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-//   name: guid(storageAccount.id, _backendContainerAppName, 'StorageQueueDataContributor')
-//   scope: storageAccount
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId(
-//       'Microsoft.Authorization/roleDefinitions',
-//       '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
-//     ) // Storage Queue Data Contributor
-//     principalId: backendIdentity.outputs.principalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
-
 /* -------------------------------------------------------------------------- */
 // AI Search Service (Azure Cognitive Search)
 
@@ -666,11 +715,10 @@ output AI_SEARCH_ENDPOINT string = 'https://${searchService.outputs.name}.search
 output AI_SEARCH_PRINCIPAL_ID string = searchIdentity.properties.principalId
 output AI_SEARCH_IDENTITY_ID string = searchIdentity.id
 output AZURE_OPENAI_API_VERSION string = azureOpenaiApiVersion
-output AZURE_OPENAI_DEPLOYMENT_NAME string = azureOpenaiDeploymentName
-output AZURE_OPENAI_ENDPOINT string = azureOpenaiEndpoint
-output AZURE_OPENAI_MODEL string = azureOpenaiDeploymentName
+output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[1].name
+output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
 output AZURE_PRINCIPAL_ID string = azurePrincipalId
-output AZURE_OPENAI_EMBEDDING_MODEL_NAME string = azureOpenaiEmbeddingModelName
+output AZURE_OPENAI_EMBEDDING_MODEL_NAME string = deployments[0].name
 output AZURE_OPENAI_EMBEDDING_DIMENSIONS string = '1536'
 output CHUNK_SIZE string = '2000'
 
@@ -683,9 +731,6 @@ output AI_SEARCH_INS_INDEX_NAME string = aiSearchInsIndexName
 output AI_SEARCH_INS_SEMANTIC_CONFIGURATION string = aiSearchInsSemanticConfiguration
 
 output AI_SEARCH_VECTOR_FIELD_NAME string = aiSearchVectorFieldName
-
-// TODO: avoid outputting keys by using users's identity when running locally
-output AZURE_OPENAI_KEY string = azureOpenaiKey
 
 output AZURE_STORAGE_ACCOUNT_ID string = storage.outputs.resourceId
 

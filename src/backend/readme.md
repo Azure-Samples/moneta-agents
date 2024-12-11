@@ -16,8 +16,10 @@ The project is managed by pyproject.toml.
 
 # Run locally
 
+* cd src/backend
 * Activate .venv as per above
-* Create .env as per sample.env
+
+**OBS!** Environment variables will be read from the AZD env file: $project/.azure/<selected_azd_environment>/.env automatically
 
 ```shell
 python app.py

@@ -1,0 +1,73 @@
+{  
+  "id": "987654321",  
+  "clientID": "987654321",  
+  "firstName": "John",  
+  "lastName": "Doe",  
+  "fullName": "John Doe",  
+  "dateOfBirth": "1980-01-01",  
+  "nationality": "Malaysia",  
+  "contactDetails": {  
+    "email": "john.doe@example.com",  
+    "phone": "123-456-7890"  
+  },  
+  "address": {  
+    "street": "123 Main St",  
+    "city": "New York",  
+    "state": "NY",  
+    "postalCode": "12345",  
+    "country": "USA"  
+  },  
+  "policies": [
+    {
+      "PolicyNo": "0",
+      "BasicPlanProduct": "P230ZII",
+      "ProductType": "Ztravel International",
+      "PolicyStatus": "A",
+      "EffectiveDate": "2024-06-18 00:00:00.000",
+      "ExpiryDate": "2024-07-13 00:00:00.000",
+      "Overseas Medical Expenses": "500000",
+      "Follow up Treatment in Malaysia": "50000.0",
+      "Alternative Medicine": "500.0",
+      "Overseas Hospital Income": "15000.0",
+      "Child Care Benefit": "10000.0",
+      "Compassionate Visit": "10000.0",
+      "Emergency Medical Evacuation": "Unlimited",
+      "Medical Repatriation": "Unlimited",
+      "Repatriation of Mortal Remains": "Unlimited"
+    },
+    {
+      "PolicyNo": "1",
+      "BasicPlanProduct": "P230ZII",
+      "ProductType": "Ztravel International Plus",
+      "PolicyStatus": "A",
+      "EffectiveDate": "2024-06-18 00:00:00.000",
+      "ExpiryDate": "2024-07-13 00:00:00.000",
+      "Overseas Medical Expenses": "500000",
+      "Follow up Treatment in Malaysia": "50000.0",
+      "Alternative Medicine": "5000.0",
+      "Overseas Hospital Income": "15000.0",
+      "Child Care Benefit": "100000.0",
+      "Compassionate Visit": "10000.0",
+      "Emergency Medical Evacuation": "Unlimited",
+      "Medical Repatriation": "Unlimited",
+      "Repatriation of Mortal Remains": "Unlimited"
+    },
+    {
+      "PolicyNo": "2",
+      "BasicPlanProduct": "P045PSI",
+      "ProductType": "Personal Accident",
+      "PolicyStatus": "A",
+      "EffectiveDate": "2018-08-15 00:00:00.000",
+      "ExpiryDate": "2019-08-14 00:00:00.000",
+      "Overseas Medical Expenses": "500000",
+      "Follow up Treatment in Malaysia": "500000.0",
+      "Alternative Medicine": "5000.0",
+      "Overseas Hospital Income": "150000.0",
+      "Child Care Benefit": "100000.0",
+      "Compassionate Visit": "100000.0",
+      "Emergency Medical Evacuation": "Unlimited",
+      "Medical Repatriation": "Unlimited",
+      "Repatriation of Mortal Remains": "Unlimited"
+    }
+  ]
+}

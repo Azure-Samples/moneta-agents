@@ -60,7 +60,7 @@ endpoint = os.environ["AI_SEARCH_ENDPOINT"]
 blob_connection_string = f"ResourceId={os.environ["AZURE_STORAGE_ACCOUNT_ID"]}"
 account_url = os.getenv("BLOB_ACCOUNT_URL")
 azure_openai_endpoint = os.environ["AZURE_OPENAI_ENDPOINT"]
-azure_openai_key = os.getenv("AZURE_OPENAI_KEY")
+
 azure_openai_embedding_deployment = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-large")
 azure_openai_model_name = os.getenv("AZURE_OPENAI_EMBEDDING_MODEL_NAME", "text-embedding-3-large")
 azure_openai_model_dimensions = int(os.getenv("AZURE_OPENAI_EMBEDDING_DIMENSIONS", 1536))

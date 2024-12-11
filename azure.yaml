@@ -38,6 +38,6 @@ hooks:
       posix:
         shell: sh
         # run: ./scripts/auth_update.sh && scripts/postprovision.sh;
-        run: scripts/postprovision.sh;
+        run: ./scripts/load_python_env.sh && ./scripts/postprovision.sh;
         interactive: true
         continueOnError: false
