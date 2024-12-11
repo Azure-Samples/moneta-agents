@@ -203,7 +203,7 @@ param embedModel string = 'text-embedding-3-large'
 
 var deployments = [
   {
-    name: '${embedModel}-${resourceToken}'
+    name: embedModel
     model: {
       format: 'OpenAI'
       name: embedModel
@@ -214,7 +214,7 @@ var deployments = [
       capacity: 50 }
   }
   {
-    name: '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}-${resourceToken}'
+    name: '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}'
     model: {
       format: 'OpenAI'
       name: aoaiGpt4ModelName
