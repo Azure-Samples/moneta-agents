@@ -29,6 +29,8 @@ param keyvaultIdentities object = {}
 @secure()
 param secrets object = {}
 
+@description('External Ingress Allowed?')
+param externalIngressAllowed bool = true
 // param applicationInsightsName string
 
 // param azureOpenAIModelEndpoint string
@@ -74,7 +76,7 @@ resource app 'Microsoft.App/containerApps@2024-08-02-preview' = {
     managedEnvironmentId: containerAppsEnvironment.id
     configuration: {
       ingress:  {
-        external: true
+        external: externalIngressAllowed
         targetPort: 8000
         transport: 'auto'
         corsPolicy: {
@@ -117,4 +119,5 @@ resource app 'Microsoft.App/containerApps@2024-08-02-preview' = {
 output defaultDomain string = containerAppsEnvironment.properties.defaultDomain
 output name string = app.name
 output URL string = 'https://${app.properties.configuration.ingress.fqdn}'
+output internalUrl string = 'http://${app.name}'
 output id string = app.id

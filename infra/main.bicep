@@ -290,7 +290,8 @@ module frontendApp 'modules/app/containerapp.bicep' = {
     env: {
       AZ_REG_APP_CLIENT_ID: ''
       AZ_TENANT_ID: ''
-      BACKEND_ENDPOINT: backendApp.outputs.URL
+      // BACKEND_ENDPOINT: backendApp.outputs.URL
+      BACKEND_ENDPOINT: backendApp.outputs.internalUrl
       DISABLE_LOGIN: 'True'
       WEB_REDIRECT_URI: ''
 
@@ -371,6 +372,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
     containerRegistryName: containerRegistry.outputs.name
     exists: backendExists
     serviceName: 'backend' // Must match the service name in azure.yaml
+    externalIngressAllowed: false
     env: {
       AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
       AI_SEARCH_ENDPOINT: 'https://${searchService.outputs.name}.search.windows.net'
