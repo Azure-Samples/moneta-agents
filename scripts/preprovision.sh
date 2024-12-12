@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 set -e 
 
 echo "Running preprovision hook..."
@@ -15,7 +15,7 @@ CURRENT_USER_ID=$(az ad user show --id "$CURRENT_USER_UPN" --query id --output t
 echo "Current user   : $CURRENT_USER_UPN"
 echo "Current tenant : $AZURE_AUTH_TENANT_ID"
 
-if [ -z "$(az ad app list --app-id "${AZURE_CLIENT_APP_ID=dummy-app-id}" --query '[].id' -o tsv)" ];
+if [ -z "$(az ad app list --app-id "${AZURE_CLIENT_APP_ID=00000000-0000-0000-0000-000000000000}" --query '[].id' -o tsv)" ];
 then
     echo "Creating app $APP_NAME..."
     AZURE_CLIENT_APP_ID=$(
