@@ -16,8 +16,8 @@ param extraTags object = {}
 @description('The auth client id for the frontend and backend app')
 param authClientId string = ''
 
-@description('The auth tenant id for the frontend and backend app')
-param authTenantId string
+@description('The auth tenant id for the frontend and backend app (leave blank in AZD to use your current tenant)')
+param authTenantId string = '' // Make sure authTenantId is set if not using AZD
 
 /* ---------------------------- Shared Resources ---------------------------- */
 
