@@ -286,18 +286,18 @@ module frontendApp 'modules/app/containerapp.bicep' = {
     exists: frontendExists
     serviceName: 'frontend' // Must match the service name in azure.yaml
     env: {
-      AZ_REG_APP_CLIENT_ID: ''
-      AZ_TENANT_ID: ''
+
+      DISABLE_LOGIN: 'True'
+      AZ_TENANT_ID: authTenantId
+      AZ_REG_APP_CLIENT_ID: authClientId
+      WEB_REDIRECT_URI: ''
+
       // BACKEND_ENDPOINT: backendApp.outputs.URL
       BACKEND_ENDPOINT: backendApp.outputs.internalUrl
-      DISABLE_LOGIN: 'True'
-      WEB_REDIRECT_URI: ''
 
       // required for container app daprAI
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
 
-      // required for managed identity
-      AZURE_CLIENT_ID: appIdentity.outputs.clientId
     }
     keyvaultIdentities: {
       'microsoft-provider-authentication-secret': {
@@ -397,16 +397,17 @@ module backendApp 'modules/app/containerapp.bicep' = {
   }
 }
 
-module backendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
-  name: 'backend-container-app-auth-module'
-  params: {
-    name: backendApp.outputs.name
-    clientId: authClientId
-    clientSecretName: 'microsoft-provider-authentication-secret'
-    openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
-    unauthenticatedClientAction: 'Return401'
-  }
-}
+// No need to authenticate the backend app as we limit the ingress to the application exclusively
+// module backendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
+//   name: 'backend-container-app-auth-module'
+//   params: {
+//     name: backendApp.outputs.name
+//     clientId: authClientId
+//     clientSecretName: 'microsoft-provider-authentication-secret'
+//     openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
+//     unauthenticatedClientAction: 'Return401'
+//   }
+// }
 
 // Cosmos DB Role Assignments
 resource cosmosDbRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {

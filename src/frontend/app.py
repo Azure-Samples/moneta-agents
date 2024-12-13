@@ -32,7 +32,7 @@ TENANT_ID = os.getenv('AZ_TENANT_ID','')
 BACKEND_ENDPOINT = os.getenv('BACKEND_ENDPOINT')
 REDIRECT_URI = os.getenv("WEB_REDIRECT_URI")
 DISABLE_LOGIN = os.getenv('DISABLE_LOGIN')
-FUNCTION_APP_KEY = os.getenv('FUNCTION_APP_KEY')
+# FUNCTION_APP_KEY = os.getenv('FUNCTION_APP_KEY')
 
 st.markdown("""
     <style>
@@ -152,7 +152,7 @@ def login():
             auth_url = app.get_authorization_request_url(scopes, redirect_uri=REDIRECT_URI)
             if st.button("Log in with Microsoft", key="login_button"):
                 st.markdown(f"<meta http-equiv='refresh' content='0;url={auth_url}'>", unsafe_allow_html=True)
-    
+
 def logout():
     for key in list(st.session_state.keys()):
         del st.session_state[key]
@@ -166,7 +166,8 @@ def fetch_conversations():
     }
 
     try:
-        response = requests.post(f'{BACKEND_ENDPOINT}/http_trigger?code={FUNCTION_APP_KEY}', json=payload)
+        # response = requests.post(f'{BACKEND_ENDPOINT}/http_trigger?code={FUNCTION_APP_KEY}', json=payload)
+        response = requests.post(f'{BACKEND_ENDPOINT}/http_trigger', json=payload)
         return response.json()
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching conversations: {e}")
@@ -205,7 +206,7 @@ def display_sidebar():
 
         # Apply styles
         st.markdown(AGENT_STYLES, unsafe_allow_html=True)
-        
+
         st.markdown("<h4 style='margin-bottom: 0px;'>Agents Online:</h4>", unsafe_allow_html=True)
         # Display agents with tooltips
         agents_container = st.container()
@@ -235,13 +236,13 @@ def display_sidebar():
 
         # Simplified Conversation History
         st.markdown("<h4 style='margin: 0px 0 0px 0;'>Recent Conversations:</h4>", unsafe_allow_html=True)
-        
+
         for idx, conv_dict in enumerate(st.session_state.conversations):
             messages = conv_dict.get('messages', [])
             first_user_message = next((msg['content'] for msg in messages if msg['role'] == 'user'), "New Conversation")
             title = (first_user_message[:43] + '...') if len(first_user_message) > 43 else first_user_message
             message_count = len(messages)
-            
+
             button_text = f"{title}\n\n({message_count-1} messages)"
             if st.button(button_text, key=f'conv_{idx}', use_container_width=True):
                 select_conversation(idx)
@@ -286,7 +287,7 @@ def display_online_agents():
 
 def display_chat():
     display_online_agents()
-    
+
     if st.session_state.current_conversation_index is None:
         st.write("Please start a new conversation or select an existing one from the sidebar.")
         return
@@ -296,7 +297,7 @@ def display_chat():
     conversation_dict = st.session_state.conversations[st.session_state.current_conversation_index]
     if 'messages' not in conversation_dict:
         conversation_dict['messages'] = []
-    
+
     messages = conversation_dict['messages']
 
     # Display predefined questions based on use case
@@ -316,13 +317,13 @@ def display_chat():
                 else:
                     messages.append(assistant_responses)
             st.rerun()
-   
+
     # Display message history
     for message in messages:
         # Skip messages with empty content
         if not message.get('content'):
             continue
-            
+
         if message['role'] == 'user':
             with st.chat_message(message['role']):
                 st.write(message['content'])
@@ -373,18 +374,18 @@ def send_message_to_backend(user_input, conversation_dict):
         response.raise_for_status()
         assistant_response = response.json()
         st.session_state.conversations[st.session_state.current_conversation_index]['name'] = assistant_response['chat_id']
-        
+
         # Extract all assistant messages from the reply and filter out empty messages
         reply = assistant_response.get('reply', [])
         assistant_messages = [
             message for message in reply 
             if message['role'] == 'assistant' and message.get('content')
         ]
-        
+
         # If no valid assistant messages found, return a default message
         if not assistant_messages:
             return {"role": "assistant", "name": "System", "content": "Sorry, I cannot help you with that."}
-        
+
         # Return all non-empty assistant messages
         return assistant_messages
 
@@ -403,12 +404,12 @@ def start_new_conversation():
 
     # reset choice of dropdown
     st.session_state['question_selectbox'] = 'Select a predefined question or type your own below'
-    
+
 
 def main():
     # Apply general styles
     st.markdown(GENERAL_STYLES, unsafe_allow_html=True)
-    
+
     if not st.session_state.authenticated:
         login()
     else:
@@ -420,7 +421,7 @@ def main():
 
         if not st.session_state.conversations:
             st.session_state.conversations = fetch_conversations()
-        
+
         display_sidebar()
         display_chat()
 
