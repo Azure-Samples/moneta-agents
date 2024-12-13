@@ -1,19 +1,20 @@
 import json
 import os
 from typing import Annotated
+from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.models import VectorizableTextQuery
 
 from semantic_kernel.functions import kernel_function
 
-class ProductFacade:
-    def __init__(self, service_endpoint, credential, index_name, semantic_configuration_name):
+class FundsFacade:
+    def __init__(self, service_endpoint, key, index_name, semantic_configuration_name):
         self.semantic_configuration_name = semantic_configuration_name
-        self.search_client = SearchClient(service_endpoint, index_name, credential)
+        self.search_client = SearchClient(service_endpoint, index_name, AzureKeyCredential(key))
 
     @kernel_function(
-        name="search_products_terms_conditions", 
-        description="Search product policies, terms, conditions"
+        name="search_funds_details", 
+        description="Search details about Funds and or ETFs"
     )
     def search(self, query: Annotated[str,"The query to search for"]) -> Annotated[str, "The output in JSON format"]:
         

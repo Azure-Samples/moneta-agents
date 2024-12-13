@@ -48,7 +48,7 @@ def search(query: str):
                 }
             ],
             "queryType": "semantic",
-            "semanticConfiguration": os.getenv('AI_SEARCH_CIO_SEMANTIC_CONFIGURATION'),
+            "semanticConfiguration": "default",
             "captions": "extractive",
             "answers": "extractive|count-3",
             "queryLanguage": "en-US"

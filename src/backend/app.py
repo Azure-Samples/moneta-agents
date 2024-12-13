@@ -32,37 +32,36 @@ def load_azd_env():
     else:
         logging.info(f"azd binary not found. reverting to plain dotenv")
         load_dotenv()
-    
-# Load environment variables from a .env file  
+   
+# Load environment variables from a .env file
 load_azd_env()
-  
-app = FastAPI()  
-  
-# Configure logging  
-  
-@app.post("/http_trigger")  
-async def http_trigger(request_body: dict = Body(...)):  
-    logging.info('Empowering RMs - HTTP trigger function processed a request.')  
+
+app = FastAPI()
+
+
+@app.post("/http_trigger")
+async def http_trigger(request_body: dict = Body(...)):
+    logging.info('Empowering RMs - HTTP trigger function processed a request.')
   
     # Extract parameters from the request body  
-    user_id = request_body.get('user_id')  
-    chat_id = request_body.get('chat_id')  # None if starting a new chat  
-    user_message = request_body.get('message')  
-    load_history = request_body.get('load_history')  
-    usecase_type = request_body.get('use_case')  
+    user_id = request_body.get('user_id')
+    chat_id = request_body.get('chat_id')  # None if starting a new chat
+    user_message = request_body.get('message')
+    load_history = request_body.get('load_history')
+    usecase_type = request_body.get('use_case')
   
-    # Validate required parameters  
-    if not user_id:  
-        raise HTTPException(status_code=400, detail="<user_id> is required!")  
+    # Validate required parameters
+    if not user_id:
+        raise HTTPException(status_code=400, detail="<user_id> is required!")
   
     if load_history is not True and not user_message:  
-        raise HTTPException(status_code=400, detail="<message> is required when not loading history!")  
+        raise HTTPException(status_code=400, detail="<message> is required when not loading history!")
   
     if not usecase_type:  
-        raise HTTPException(status_code=400, detail="<usecase_type> is required!")  
+        raise HTTPException(status_code=400, detail="<usecase_type> is required!")
   
     # Authenticate using DefaultAzureCredential  
-    key = DefaultAzureCredential() 
+    key = DefaultAzureCredential()
   
     # Select use case container based on usecase_type  
     if usecase_type == 'fsi_insurance':  
@@ -73,6 +72,7 @@ async def http_trigger(request_body: dict = Body(...)):
         raise HTTPException(status_code=400, detail="Use case not recognized/not implemented...")  
   
     # Initialize the ConversationStore with Cosmos DB configurations  
+    # TODO: 1. This part needs t be moved to handler
     db = ConversationStore(  
         url=os.getenv("COSMOSDB_ENDPOINT"),  
         key=key,  
@@ -86,7 +86,8 @@ async def http_trigger(request_body: dict = Body(...)):
         db.create_user(user_id, user_data)  
   
     user_data = db.read_user_info(user_id)  
-  
+    # //: 1
+    
     # Decide which handler to use based on the HANDLER_TYPE environment variable  
     handler_type = os.getenv("HANDLER_TYPE", "semantickernel")  # Expected values: "vanilla", "semantickernel"  
     
