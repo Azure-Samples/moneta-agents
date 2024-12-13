@@ -710,14 +710,15 @@ output COSMOSDB_ACCOUNT_NAME string = cosmosDbAccountName
 
 output COSMOSDB_ENDPOINT string = cosmosDbAccount.properties.documentEndpoint
 output COSMOSDB_DATABASE_NAME string = cosmosDbDatabaseName
+
 output COSMOSDB_CONTAINER_CLIENT_NAME string = cosmosDbCRMContainerName
 output COSMOSDB_CONTAINER_FSI_BANK_USER_NAME string = cosmosDbBankingContainerName
 output COSMOSDB_CONTAINER_FSI_INS_USER_NAME string = cosmosDbInsuranceContainerName
 
-
 output AI_SEARCH_ENDPOINT string = 'https://${searchService.outputs.name}.search.windows.net'
 output AI_SEARCH_PRINCIPAL_ID string = searchIdentity.properties.principalId
 output AI_SEARCH_IDENTITY_ID string = searchIdentity.id
+
 output AZURE_OPENAI_API_VERSION string = azureOpenaiApiVersion
 output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[1].name
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
@@ -726,14 +727,11 @@ output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = deployments[0].name
 output AZURE_OPENAI_EMBEDDING_MODEL string = deployments[0].model.name
 
 output AI_SEARCH_CIO_INDEX_NAME string = 'moneta-cio-vector'
-output AI_SEARCH_CIO_SEMANTIC_CONFIGURATION string = 'default'
 output AI_SEARCH_FUNDS_INDEX_NAME string = 'moneta-funds-vector'
 output AI_SEARCH_FUNDS_SEMANTIC_CONFIGURATION string = 'default'
 
 output AI_SEARCH_INS_INDEX_NAME string = aiSearchInsIndexName
 output AI_SEARCH_INS_SEMANTIC_CONFIGURATION string = aiSearchInsSemanticConfiguration
-
-// output AI_SEARCH_VECTOR_FIELD_NAME string = aiSearchVectorFieldName
 
 output AZURE_STORAGE_ACCOUNT_ID string = storage.outputs.resourceId
 output AZURE_STORAGE_ACCOUNT_ENDPOINT string = storage.outputs.primaryBlobEndpoint
