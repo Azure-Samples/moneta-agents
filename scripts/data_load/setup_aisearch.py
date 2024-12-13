@@ -239,36 +239,40 @@ if __name__ == "__main__":
 
     # AVAILABLE
     azure_credential = DefaultAzureCredential()
-    
+
     AZURE_OPENAI_EMBEDDING_ENDPOINT = os.environ["AZURE_OPENAI_ENDPOINT"]
     AZURE_OPENAI_EMBEDDING_DEPLOYMENT = os.environ["AZURE_OPENAI_EMBEDDING_DEPLOYMENT"]
     AZURE_OPENAI_EMBEDDING_MODEL = os.environ["AZURE_OPENAI_EMBEDDING_MODEL"]
-    
+
     UAMI_ID = os.environ["AI_SEARCH_IDENTITY_ID"]
     AZURE_SEARCH_ENDPOINT = os.environ["AI_SEARCH_ENDPOINT"]
-    
+
     AZURE_STORAGE_ENDPOINT =  os.getenv("AZURE_STORAGE_ACCOUNT_ENDPOINT")
     AZURE_STORAGE_CONNECTION_STRING =  f"ResourceId={os.environ["AZURE_STORAGE_ACCOUNT_ID"]}"
-    
+
     blob_service_client = BlobServiceClient(AZURE_STORAGE_ENDPOINT, azure_credential)
-    
-    for container in blob_service_client.list_containers():
-        print(container.name)
-    
+
+    source_directory = f"{os.path.dirname(__file__)}/../../src/data/ai-search-index"
+    entries = os.listdir(source_directory)
+    folders = [entry for entry in entries if os.path.isdir(os.path.join(source_directory, entry))]
+
+    for index_name in folders:
+        print(index_name)
+
         setup_index(azure_credential,
-            index_name=f"{container.name}",
+            index_name=f"{index_name}",
             uami_id=UAMI_ID,
             azure_search_endpoint=AZURE_SEARCH_ENDPOINT,
             azure_storage_connection_string=AZURE_STORAGE_CONNECTION_STRING,
-            azure_storage_container=container.name,
+            azure_storage_container=index_name,
             azure_openai_embedding_endpoint=AZURE_OPENAI_EMBEDDING_ENDPOINT,
             azure_openai_embedding_deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
             azure_openai_embedding_model=AZURE_OPENAI_EMBEDDING_MODEL,
             azure_openai_embeddings_dimensions=EMBEDDINGS_DIMENSIONS)
 
         upload_documents(azure_credential,
-            indexer_name=f"{container.name}",
-            source_folder=os.path.join(os.path.dirname(__file__), "../../src/data/ai-search-index", container.name),
+            indexer_name=f"{index_name}",
+            source_folder=os.path.join(source_directory, index_name),
             azure_search_endpoint=AZURE_SEARCH_ENDPOINT,
             azure_storage_endpoint=AZURE_STORAGE_ENDPOINT,
-            azure_storage_container=container.name)
+            azure_storage_container=index_name)
