@@ -12,6 +12,9 @@ param clientSecretName string
 @description('The OpenID issuer of the Microsoft Entra application')
 param openIdIssuer string
 
+@description('App IDs of the applications that are allowed to access the app')
+param allowedApplications array = []
+
 @description('The action to take when an unauthenticated client accesses the app')
 @allowed([
   'RedirectToLoginPage'
@@ -25,7 +28,7 @@ resource app 'Microsoft.App/containerApps@2023-05-01' existing = {
   name: name
 }
 
-resource auth 'Microsoft.App/containerApps/authConfigs@2023-05-01' = {
+resource auth 'Microsoft.App/containerApps/authConfigs@2024-03-01' = {
   parent: app
   name: 'current'
   properties: {
@@ -35,6 +38,7 @@ resource auth 'Microsoft.App/containerApps/authConfigs@2023-05-01' = {
     globalValidation: {
       redirectToProvider: 'azureactivedirectory'
       unauthenticatedClientAction: unauthenticatedClientAction
+
     }
     identityProviders: {
       azureActiveDirectory: {
@@ -42,6 +46,11 @@ resource auth 'Microsoft.App/containerApps/authConfigs@2023-05-01' = {
           clientId: clientId
           clientSecretSettingName: clientSecretName
           openIdIssuer: openIdIssuer
+        }
+        validation: {
+          defaultAuthorizationPolicy: {
+            allowedApplications: allowedApplications
+          }
         }
       }
     }

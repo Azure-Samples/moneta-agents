@@ -1,0 +1,12 @@
+{
+    "api": {
+        "preAuthorizedApplications": [
+            {
+                "appId": "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+                "delegatedPermissionIds": [
+                    "82b64a34-ac61-4e2a-a9aa-bda145ef0de6"
+                ]
+            }
+        ]
+    }
+}

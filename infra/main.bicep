@@ -272,42 +272,6 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01'
   }
 }
 
-/* ------------------------------ Frontend App ------------------------------ */
-
-module frontendApp 'modules/app/containerapp.bicep' = {
-  name: 'frontend-container-app'
-  scope: resourceGroup()
-  params: {
-    name: _frontendContainerAppName
-    tags: tags
-    identityId: appIdentity.outputs.identityId
-    containerAppsEnvironmentName: containerAppsEnvironment.name
-    containerRegistryName: containerRegistry.outputs.name
-    exists: frontendExists
-    serviceName: 'frontend' // Must match the service name in azure.yaml
-    env: {
-
-      DISABLE_LOGIN: 'True'
-      AZ_TENANT_ID: authTenantId
-      AZ_REG_APP_CLIENT_ID: authClientId
-      WEB_REDIRECT_URI: ''
-
-      // BACKEND_ENDPOINT: backendApp.outputs.URL
-      BACKEND_ENDPOINT: backendApp.outputs.internalUrl
-
-      // required for container app daprAI
-      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
-
-    }
-    keyvaultIdentities: {
-      'microsoft-provider-authentication-secret': {
-        keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
-        identity: appIdentity.outputs.identityId
-      }
-    }
-  }
-}
-
 module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
   name: 'keyVault'
   scope: resourceGroup()
@@ -341,6 +305,40 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
   }
 }
 
+/* ------------------------------ Frontend App ------------------------------ */
+
+module frontendApp 'modules/app/containerapp.bicep' = {
+  name: 'frontend-container-app'
+  scope: resourceGroup()
+  params: {
+    name: _frontendContainerAppName
+    tags: tags
+    identityId: appIdentity.outputs.identityId
+    containerAppsEnvironmentName: containerAppsEnvironment.name
+    containerRegistryName: containerRegistry.outputs.name
+    exists: frontendExists
+    serviceName: 'frontend' // Must match the service name in azure.yaml
+    env: {
+      // TODO: remove this when the auth has been removed from the frontend app
+      DISABLE_LOGIN: 'True'
+
+      // BACKEND_ENDPOINT: backendApp.outputs.URL
+      BACKEND_ENDPOINT: backendApp.outputs.internalUrl
+
+      // required for container app daprAI
+      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
+
+      AZURE_CLIENT_ID: appIdentity.outputs.clientId
+    }
+    keyvaultIdentities: {
+      'microsoft-provider-authentication-secret': {
+        keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
+        identity: appIdentity.outputs.identityId
+      }
+    }
+  }
+}
+
 module frontendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
   name: 'frontend-container-app-auth-module'
   params: {
@@ -349,6 +347,10 @@ module frontendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
     clientSecretName: 'microsoft-provider-authentication-secret'
     openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
     unauthenticatedClientAction: 'RedirectToLoginPage'
+    allowedApplications:[
+      authClientId
+      '04b07795-8ddb-461a-bbee-02f9e1bf7b46' // AZ CLI for testing purposes
+    ]
   }
 }
 
@@ -365,7 +367,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
     containerRegistryName: containerRegistry.outputs.name
     exists: backendExists
     serviceName: 'backend' // Must match the service name in azure.yaml
-    externalIngressAllowed: false
+    externalIngressAllowed: true
     env: {
       AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
       AI_SEARCH_ENDPOINT: 'https://${searchService.outputs.name}.search.windows.net'
@@ -397,17 +399,20 @@ module backendApp 'modules/app/containerapp.bicep' = {
   }
 }
 
-// No need to authenticate the backend app as we limit the ingress to the application exclusively
-// module backendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
-//   name: 'backend-container-app-auth-module'
-//   params: {
-//     name: backendApp.outputs.name
-//     clientId: authClientId
-//     clientSecretName: 'microsoft-provider-authentication-secret'
-//     openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
-//     unauthenticatedClientAction: 'Return401'
-//   }
-// }
+module backendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
+  name: 'backend-container-app-auth-module'
+  params: {
+    name: backendApp.outputs.name
+    clientId: authClientId
+    clientSecretName: 'microsoft-provider-authentication-secret'
+    openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
+    unauthenticatedClientAction: 'Return401'
+    allowedApplications:[
+      authClientId
+      '04b07795-8ddb-461a-bbee-02f9e1bf7b46' // AZ CLI for testing purposes
+    ]
+  }
+}
 
 // Cosmos DB Role Assignments
 resource cosmosDbRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {

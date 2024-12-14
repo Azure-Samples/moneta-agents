@@ -1,0 +1,16 @@
+{
+    "api": {
+        "oauth2PermissionScopes": [
+            {
+                "adminConsentDescription": "Moneta App Access",
+                "adminConsentDisplayName": "Moneta App Access",
+                "id": "82b64a34-ac61-4e2a-a9aa-bda145ef0de6",
+                "isEnabled": true,
+                "type": "User",
+                "userConsentDescription": "Moneta App Access",
+                "userConsentDisplayName": "Moneta App Access",
+                "value": "user_impersonation"
+            }
+        ]
+    }
+}

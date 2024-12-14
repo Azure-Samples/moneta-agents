@@ -32,7 +32,6 @@ TENANT_ID = os.getenv('AZ_TENANT_ID','')
 BACKEND_ENDPOINT = os.getenv('BACKEND_ENDPOINT')
 REDIRECT_URI = os.getenv("WEB_REDIRECT_URI")
 DISABLE_LOGIN = os.getenv('DISABLE_LOGIN')
-# FUNCTION_APP_KEY = os.getenv('FUNCTION_APP_KEY')
 
 st.markdown("""
     <style>
@@ -166,7 +165,6 @@ def fetch_conversations():
     }
 
     try:
-        # response = requests.post(f'{BACKEND_ENDPOINT}/http_trigger?code={FUNCTION_APP_KEY}', json=payload)
         response = requests.post(f'{BACKEND_ENDPOINT}/http_trigger', json=payload)
         return response.json()
     except requests.exceptions.RequestException as e:
