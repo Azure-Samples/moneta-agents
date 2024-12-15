@@ -8,9 +8,10 @@ from azure.search.documents.models import VectorizableTextQuery
 from semantic_kernel.functions import kernel_function
 
 class FundsFacade:
-    def __init__(self, service_endpoint, key, index_name, semantic_configuration_name):
+    def __init__(self, service_endpoint, credential, index_name, semantic_configuration_name):
         self.semantic_configuration_name = semantic_configuration_name
-        self.search_client = SearchClient(service_endpoint, index_name, AzureKeyCredential(key))
+        self.search_client = SearchClient(service_endpoint, index_name, credential)
+        # self.search_client = SearchClient(service_endpoint, index_name, AzureKeyCredential(key))
 
     @kernel_function(
         name="search_funds_details", 

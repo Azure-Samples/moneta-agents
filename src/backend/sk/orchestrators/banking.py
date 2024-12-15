@@ -27,18 +27,17 @@ class BankingOrchestrator(SemanticOrchastrator):
             crm_container_name=os.getenv("COSMOSDB_CONTAINER_CLIENT_NAME"))
 
         self.product = FundsFacade(
-            key=os.getenv("AI_SEARCH_KEY"),
+            credential=DefaultAzureCredential(),
             service_endpoint=os.getenv('AI_SEARCH_ENDPOINT'),
             index_name=os.getenv('AI_SEARCH_FUNDS_INDEX_NAME'),
             semantic_configuration_name=os.getenv('AI_SEARCH_FUNDS_SEMANTIC_CONFIGURATION'))
 
-        gpt4o_service = AzureChatCompletion(
-            service_id="gpt-4o",
-            endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
-            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-            api_key=os.getenv("AZURE_OPENAI_KEY")
-        )
+        
+        gpt4o_service = AzureChatCompletion(service_id="gpt-4o",
+                                            endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+                                            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
+                                            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+                                            ad_token_provider=get_bearer_token_provider(DefaultAzureCredential(),"https://cognitiveservices.azure.com/.default"))
 
         self.kernel = Kernel(
             services=[gpt4o_service],
