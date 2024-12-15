@@ -367,7 +367,7 @@ module backendApp 'modules/app/containerapp.bicep' = {
     containerRegistryName: containerRegistry.outputs.name
     exists: backendExists
     serviceName: 'backend' // Must match the service name in azure.yaml
-    externalIngressAllowed: true
+    externalIngressAllowed: false
     env: {
       AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
       AI_SEARCH_ENDPOINT: 'https://${searchService.outputs.name}.search.windows.net'
@@ -399,20 +399,20 @@ module backendApp 'modules/app/containerapp.bicep' = {
   }
 }
 
-module backendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
-  name: 'backend-container-app-auth-module'
-  params: {
-    name: backendApp.outputs.name
-    clientId: authClientId
-    clientSecretName: 'microsoft-provider-authentication-secret'
-    openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
-    unauthenticatedClientAction: 'Return401'
-    allowedApplications:[
-      authClientId
-      '04b07795-8ddb-461a-bbee-02f9e1bf7b46' // AZ CLI for testing purposes
-    ]
-  }
-}
+// module backendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
+//   name: 'backend-container-app-auth-module'
+//   params: {
+//     name: backendApp.outputs.name
+//     clientId: authClientId
+//     clientSecretName: 'microsoft-provider-authentication-secret'
+//     openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
+//     unauthenticatedClientAction: 'Return401'
+//     allowedApplications:[
+//       authClientId
+//       '04b07795-8ddb-461a-bbee-02f9e1bf7b46' // AZ CLI for testing purposes
+//     ]
+//   }
+// }
 
 // Cosmos DB Role Assignments
 resource cosmosDbRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
