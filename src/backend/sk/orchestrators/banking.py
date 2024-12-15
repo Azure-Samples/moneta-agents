@@ -11,6 +11,7 @@ from semantic_kernel.functions import KernelPlugin, KernelFunctionFromPrompt
 
 from sk.skills.crm_facade import CRMFacade
 from sk.skills.funds_facade import FundsFacade
+from sk.skills.cio_facade import CIOFacade
 from sk.orchestrators.semantic_orchestrator import SemanticOrchastrator
 
 class BankingOrchestrator(SemanticOrchastrator):
@@ -32,6 +33,12 @@ class BankingOrchestrator(SemanticOrchastrator):
             index_name=os.getenv('AI_SEARCH_FUNDS_INDEX_NAME'),
             semantic_configuration_name=os.getenv('AI_SEARCH_FUNDS_SEMANTIC_CONFIGURATION'))
 
+        self.cio = CIOFacade(
+            credential=DefaultAzureCredential(),
+            service_endpoint=os.getenv('AI_SEARCH_ENDPOINT'),
+            index_name=os.getenv('AI_SEARCH_CIO_INDEX_NAME'),
+            semantic_configuration_name=os.getenv('AI_SEARCH_CIO_SEMANTIC_CONFIGURATION'))
+
         
         gpt4o_service = AzureChatCompletion(service_id="gpt-4o",
                                             endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
@@ -44,6 +51,7 @@ class BankingOrchestrator(SemanticOrchastrator):
             plugins=[
                 KernelPlugin.from_object(plugin_instance=self.crm, plugin_name="crm"),
                 KernelPlugin.from_object(plugin_instance=self.product, plugin_name="funds"),
+                KernelPlugin.from_object(plugin_instance=self.cio, plugin_name="cio"),
             ]
         )
 
@@ -121,11 +129,14 @@ class BankingOrchestrator(SemanticOrchastrator):
         funds_agent = self.create_agent(service_id="gpt-4o",
                                       kernel=self.kernel,
                                       definition_file_path="sk/agents/banking/funds.yaml")
+        cio_agent = self.create_agent(service_id="gpt-4o",
+                                      kernel=self.kernel,
+                                      definition_file_path="sk/agents/banking/cio.yaml")
         responder_agent = self.create_agent(service_id="gpt-4o",
                                       kernel=self.kernel,
                                       definition_file_path="sk/agents/banking/responder.yaml")
 
-        agents = [crm_agent, funds_agent, responder_agent]
+        agents = [crm_agent, funds_agent, cio_agent, responder_agent]
 
         agent_group_chat = AgentGroupChat(
             agents=agents,
