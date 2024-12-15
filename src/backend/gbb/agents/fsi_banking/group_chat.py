@@ -7,7 +7,7 @@ from gbb.agents.fsi_banking.crm_agent import crm_agent
 from gbb.agents.fsi_banking.product_agent import product_agent
 from gbb.agents.fsi_banking.cio_agent import cio_agent
 from gbb.agents.fsi_banking.news_agent import news_agent
-from gbb.agents.fsi_banking.config import llm
+from gbb.agents.fsi_banking.config import create_llm
 
 import logging
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def create_group_chat_banking(original_inquiry):
     local_messages = []
     local_messages.append({"role": "system", "content": system_message_template})
     local_messages.append({"role": "user", "content": original_inquiry})
-    
+    llm = create_llm()
     response = llm.ask(messages=local_messages)
     strategy = response[0].content
     logger.info(f"agent team strategy decision = {strategy}")

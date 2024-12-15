@@ -4,7 +4,7 @@ import json
 import os
 import logging
 from gbb.genai_vanilla_agents.agent import Agent
-from gbb.agents.fsi_banking.config import llm
+from gbb.agents.fsi_banking.config import create_llm
 from typing import List, Annotated, Optional
 import requests
 from azure.identity import DefaultAzureCredential
@@ -22,7 +22,7 @@ product_agent = Agent(
         - If you are unsure ask the planner agent to clarify the user inquiry.
         
     """,  
-    llm=llm,  
+    llm=create_llm(),  
     description="""Call this Agent if:
         - You need to retrieve generic funds or ETF information or conditions or other details about investments offering.
         DO NOT CALL THIS AGENT IF:  

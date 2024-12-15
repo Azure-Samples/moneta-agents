@@ -8,10 +8,6 @@ from gbb.agents.fsi_insurance.config import llm
 from typing import List, Annotated, Optional
 from crm_store import CRMStore
 from azure.identity import DefaultAzureCredential
-from dotenv import load_dotenv
-
-load_dotenv()
-
 
 crm_agent = Agent(  
     id="CRM",
@@ -23,7 +19,7 @@ crm_agent = Agent(
         - Provide concise and accurate information based only on the CRM data. Don't come up with information that are not coming form the CRM.
     
     """,  
-    llm=llm,  
+    llm=create_llm(),  
     description="""Call this Agent if:
         - You need to retrieve specific client's data identified by the name of a client in the user request or by a client id.
         DO NOT CALL THIS AGENT IF:  

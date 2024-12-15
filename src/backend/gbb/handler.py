@@ -3,8 +3,6 @@ import json
 
 from gbb.genai_vanilla_agents.conversation import Conversation
 from gbb.genai_vanilla_agents.workflow import Workflow
-from gbb.agents.fsi_insurance.group_chat import create_group_chat_insurance
-from gbb.agents.fsi_banking.group_chat import create_group_chat_banking
 
 #Vanilla Agents implementation
 class VanillaAgenticHandler:
@@ -12,6 +10,9 @@ class VanillaAgenticHandler:
         self.db = db
 
     async def handle_request(self, user_id, chat_id, user_message, load_history, usecase_type, user_data):
+        from gbb.agents.fsi_insurance.group_chat import create_group_chat_insurance
+        from gbb.agents.fsi_banking.group_chat import create_group_chat_banking
+
         # Initialize conversation history
         conversation_history = Conversation(messages=[], variables={})
 

@@ -3,7 +3,7 @@ import json
 import os
 import logging
 from gbb.genai_vanilla_agents.agent import Agent
-from gbb.agents.fsi_banking.config import llm
+from gbb.agents.fsi_banking.config import create_llm   
 from typing import List, Annotated, Optional
 import requests
 from azure.identity import DefaultAzureCredential
@@ -21,7 +21,7 @@ cio_agent = Agent(
         - 
     
     """,  
-    llm=llm,  
+    llm=create_llm(),
     description="""Call this Agent if:
         - You need to retrieve investement researches or in-house views or reccomandations about investing streategies.
         DO NOT CALL THIS AGENT IF:  
