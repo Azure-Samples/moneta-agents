@@ -2,6 +2,7 @@ import logging
 import json
 
 from sk.orchestrators.insurance import InsuranceOrchestrator
+from sk.orchestrators.banking import BankingOrchestrator
 
 class SemanticKernelHandler:
     def __init__(self, history_db):
@@ -11,7 +12,7 @@ class SemanticKernelHandler:
         self.history_db = history_db
         self.orchestrators = {}
         self.orchestrators['fsi_insurance'] = InsuranceOrchestrator()
-        self.orchestrators['fsi_banking'] = InsuranceOrchestrator()
+        self.orchestrators['fsi_banking'] = BankingOrchestrator()
 
     def load_history(self, user_id):
         user_data = self.history_db.read_user_info(user_id)
