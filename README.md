@@ -6,7 +6,7 @@ Moneta is an AI-powered assistant designed to empower insurance and banking advi
 
 You can choose chich Agentic orchestration framework the Solution uses behind the scene by setting the approriate env variable. Choose from: 
 * [Semantic Kernel](https://learn.microsoft.com/en-us/semantic-kernel/overview/) 
-* [Microsoft GBB AI EMEA - Vanilla Agents](https://github.com/Azure-Samples/genai-vanilla-agents) 
+* [Microsoft GBB AI EMEA - Vanilla Agents](https://github.com/Azure-Samples/vanilla-aiagents) 
 
 ## Prerequisites
 
