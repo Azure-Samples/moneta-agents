@@ -248,7 +248,7 @@ if __name__ == "__main__":
     AZURE_SEARCH_ENDPOINT = os.environ["AI_SEARCH_ENDPOINT"]
 
     AZURE_STORAGE_ENDPOINT =  os.getenv("AZURE_STORAGE_ACCOUNT_ENDPOINT")
-    AZURE_STORAGE_CONNECTION_STRING =  f"ResourceId={os.environ["AZURE_STORAGE_ACCOUNT_ID"]}"
+    AZURE_STORAGE_CONNECTION_STRING =  f"ResourceId={os.getenv('AZURE_STORAGE_ACCOUNT_ID')}"
 
     blob_service_client = BlobServiceClient(AZURE_STORAGE_ENDPOINT, azure_credential)
 
