@@ -27,11 +27,12 @@
             "ms-azuretools.vscode-azureresourcegroups",
             "ms-azuretools.vscode-azurestorage",
             "ms-azuretools.vscode-azure-github-copilot",
-            "ms-azuretools.vscode-azurefunctions"
+            "ms-vscode-remote.remote-containers",
+            "ms-python.black-formatter",
+            "tamasfe.even-better-toml"
         ]
       }
     },
-    // Add your own post creation commands here
-    // Add the Python packages that you use to requirements.txt
-    "postCreateCommand": "sudo apt update && pip install --upgrade pip && pip install -r src/frontend/requirements.txt && pip install -r src/backend/requirements.txt"
+    // Add your own post creation commands at the end of post-create.sh
+    "postCreateCommand": ".devcontainer/post-create.sh"
   }
