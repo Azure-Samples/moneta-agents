@@ -315,9 +315,6 @@ module frontendApp 'modules/app/containerapp.bicep' = {
     exists: frontendExists
     serviceName: 'frontend' // Must match the service name in azure.yaml
     env: {
-      // TODO: remove this when the auth has been removed from the frontend app
-      DISABLE_LOGIN: 'True'
-
       // BACKEND_ENDPOINT: backendApp.outputs.URL
       BACKEND_ENDPOINT: backendApp.outputs.internalUrl
 
