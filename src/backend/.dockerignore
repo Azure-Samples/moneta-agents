@@ -1,10 +1,1 @@
-logs/
-.git
-*.md
-.cache
-.vscode/
-.env
-banking/
-local.settings.json
-_pycache_/
-**/__pycache__/
+.venv

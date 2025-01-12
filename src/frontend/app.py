@@ -1,9 +1,10 @@
-import streamlit as st
-import requests
+import base64
+import json
 import logging
 import os
+import requests
+import streamlit as st
 from dotenv import load_dotenv
-from msal import PublicClientApplication
 from config import (
     INS_AGENTS, 
     BANK_AGENTS, 
@@ -25,13 +26,9 @@ st.set_page_config(
     layout="wide"
 )
 
-
 # Constants
-CLIENT_ID = os.getenv('AZ_REG_APP_CLIENT_ID','')
-TENANT_ID = os.getenv('AZ_TENANT_ID','')
 BACKEND_ENDPOINT = os.getenv('BACKEND_ENDPOINT', 'http://localhost:8000')
 REDIRECT_URI = os.getenv("WEB_REDIRECT_URI")
-DISABLE_LOGIN = os.getenv('DISABLE_LOGIN')
 
 st.markdown("""
     <style>
@@ -90,72 +87,6 @@ if "use_case" not in st.session_state:
     st.session_state.use_case = 'fsi_insurance'  # Default use case
 if "AGENTS" not in st.session_state:
     st.session_state.AGENTS = INS_AGENTS  # Default agents
-
-def initialize_msal_app():
-    authority_url = f"https://login.microsoftonline.com/{TENANT_ID}"
-    return PublicClientApplication(CLIENT_ID, authority=authority_url)
-
-def acquire_token(app, code):
-    scopes = ["User.Read"]
-    try:
-        result = app.acquire_token_by_authorization_code(code, scopes=scopes, redirect_uri=REDIRECT_URI)
-        if "access_token" in result:
-            return result
-        else:
-            st.error("Failed to acquire token. Please try again.")
-            return None
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
-        return None
-
-def fetch_user_data(access_token):
-    headers = {"Authorization": f"Bearer {access_token}"}
-    graph_api_endpoint = "https://graph.microsoft.com/v1.0/me"
-    response = requests.get(graph_api_endpoint, headers=headers)
-    return response.json()
-
-def login():
-    if os.getenv("DISABLE_LOGIN") == "True":
-        col1, col2, col3 = st.columns([1,6,1])
-        with col2:
-            st.markdown('<p class="big-font">Welcome to Moneta</p>', unsafe_allow_html=True)
-            st.markdown('<p class="medium-font">Your Agentic Assistant for Insurance and Banking</p>', unsafe_allow_html=True)
-            st.image('resources/banners/moneta_banner_v2.webp', width=600)
-            st.write("Moneta is an AI-powered assistant designed to empower insurance advisors. "
-                     "Log in to access personalized insights, streamline your workflow, and enhance your client interactions.")
-            if st.button("Log in with Microsoft", key="login_button"):
-                st.session_state.authenticated = True
-                st.session_state.user_id = "default_user_id"
-                st.session_state.display_name = "Default User"
-                st.rerun()
-    else:
-        app = initialize_msal_app()
-        if "code" in st.query_params:
-            with st.spinner("Authenticating..."):
-                code = st.query_params["code"]
-                token_result = acquire_token(app, code)
-                if token_result:
-                    user_data = fetch_user_data(token_result["access_token"])
-                    st.session_state.authenticated = True
-                    st.session_state.user_id = user_data.get("id")
-                    st.session_state.display_name = user_data.get("displayName")
-                    st.rerun()
-        col1, col2, col3 = st.columns([1,6,1])
-        with col2:
-            st.markdown('<p class="big-font">Welcome to Moneta</p>', unsafe_allow_html=True)
-            st.markdown('<p class="medium-font">Your Agentic Assistant for Insurance and Banking</p>', unsafe_allow_html=True)
-            st.image('resources/banners/moneta_banner.webp')
-            st.write("Moneta is an AI-powered assistant designed to empower insurance advisors. "
-                     "Log in to access personalized insights, streamline your workflow, and enhance your client interactions.")
-            scopes = ["User.Read"]
-            auth_url = app.get_authorization_request_url(scopes, redirect_uri=REDIRECT_URI)
-            if st.button("Log in with Microsoft", key="login_button"):
-                st.markdown(f"<meta http-equiv='refresh' content='0;url={auth_url}'>", unsafe_allow_html=True)
-
-def logout():
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.rerun()
 
 def fetch_conversations():
     payload = {
@@ -241,7 +172,7 @@ def display_sidebar():
             title = (first_user_message[:43] + '...') if len(first_user_message) > 43 else first_user_message
             message_count = len(messages)
 
-            button_text = f"{title}\n\n({message_count-1} messages)"
+            button_text = f"{title}\n\n({0 if message_count == 0 else message_count-1} messages)"
             if st.button(button_text, key=f'conv_{idx}', use_container_width=True):
                 select_conversation(idx)
 
@@ -415,20 +346,26 @@ def main():
     # Apply general styles
     st.markdown(GENERAL_STYLES, unsafe_allow_html=True)
 
-    if not st.session_state.authenticated:
-        login()
+    st.session_state.user_id = st.context.headers.get('x-ms-client-principal-id', "default_user_id")
+    principal = st.context.headers.get('x-ms-client-principal')
+    if principal:
+        principal = json.loads(base64.b64decode(principal).decode('utf-8'))
+        claims = principal.get("claims", [])
+        st.session_state.display_name = next((claim["val"] for claim in claims if claim["typ"] == "name"), "Default User")
     else:
-        # Initialize AGENTS based on use_case
-        if st.session_state.use_case == 'fsi_insurance':
-            st.session_state.AGENTS = INS_AGENTS
-        else:
-            st.session_state.AGENTS = BANK_AGENTS
+        st.session_state.display_name = "Default User"
+    
+    # Initialize AGENTS based on use_case
+    if st.session_state.use_case == 'fsi_insurance':
+        st.session_state.AGENTS = INS_AGENTS
+    else:
+        st.session_state.AGENTS = BANK_AGENTS
 
-        if not st.session_state.conversations:
-            st.session_state.conversations = fetch_conversations()
+    if not st.session_state.conversations:
+        st.session_state.conversations = fetch_conversations()
 
-        display_sidebar()
-        display_chat()
+    display_sidebar()
+    display_chat()
 
 if __name__ == "__main__":
     main()

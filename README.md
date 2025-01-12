@@ -171,13 +171,10 @@ uv sync
 ./.venv/bin/streamlit run app.py
 ```
 
-Note: the web app is deployed with DISABLE_LOGIN=true configuration bypassing MSAL
-
 ### Usage
 
-1. **Login**: Click on "Log in with Microsoft" to authenticate via Azure AD (automatically skipped if `DISABLE_LOGIN=True`)
-2. **Select Use Case**: Choose between `fsi_insurance` and `fsi_banking` from the sidebar
-3. **Start a Conversation**: Click "Start New Conversation" or select an existing one
-4. **Chat**: Use the chat input to ask questions. Predefined questions are available in a dropdown
-5. **Agents Online**: View the available agents for the selected use case
-6. **Chat Histories**: View and reload your past conversations
+1. **Select Use Case**: Choose between `fsi_insurance` and `fsi_banking` from the sidebar
+2. **Start a Conversation**: Click "Start New Conversation" or select an existing one
+3. **Chat**: Use the chat input to ask questions. Predefined questions are available in a dropdown
+4. **Agents Online**: View the available agents for the selected use case
+5. **Chat Histories**: View and reload your past conversations
