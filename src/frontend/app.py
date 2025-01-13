@@ -177,8 +177,7 @@ def display_sidebar():
                 select_conversation(idx)
 
         st.write("---")
-        if st.button("🚪 Logout", use_container_width=True):
-            logout()
+        st.markdown('<a href="/.auth/logout" target = "_self">Sign Out</a>', unsafe_allow_html=True)
 
 def display_online_agents():
     st.markdown(
