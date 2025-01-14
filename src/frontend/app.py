@@ -176,10 +176,6 @@ def display_sidebar():
             if st.button(button_text, key=f'conv_{idx}', use_container_width=True):
                 select_conversation(idx)
 
-        st.write("---")
-        if st.button("🚪 Logout", use_container_width=True):
-            logout()
-
 def display_online_agents():
     st.markdown(
         """
