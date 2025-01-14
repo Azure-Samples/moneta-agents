@@ -15,6 +15,10 @@ param openIdIssuer string
 @description('App IDs of the applications that are allowed to access the app')
 param allowedApplications array = []
 
+@description('App URIs of the allowed audiences')
+param allowedAudiences array = []
+
+
 @description('The action to take when an unauthenticated client accesses the app')
 @allowed([
   'RedirectToLoginPage'
@@ -38,7 +42,6 @@ resource auth 'Microsoft.App/containerApps/authConfigs@2024-03-01' = {
     globalValidation: {
       redirectToProvider: 'azureactivedirectory'
       unauthenticatedClientAction: unauthenticatedClientAction
-
     }
     identityProviders: {
       azureActiveDirectory: {
@@ -51,6 +54,7 @@ resource auth 'Microsoft.App/containerApps/authConfigs@2024-03-01' = {
           defaultAuthorizationPolicy: {
             allowedApplications: allowedApplications
           }
+          allowedAudiences: allowedAudiences
         }
       }
     }

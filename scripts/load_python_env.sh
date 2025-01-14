@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo 'Creating Python virtual environment "scripts/.venv"...'
+echo 'Creating Python virtual environment "./.venv"...'
 python -m venv .venv
 
 echo 'Installing dependencies from "requirements.txt" into virtual environment (in quiet mode)...'

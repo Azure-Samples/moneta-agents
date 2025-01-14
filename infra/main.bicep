@@ -1,25 +1,48 @@
+metadata name = 'moneta'
+
 /* -------------------------------------------------------------------------- */
 /*                                 PARAMETERS                                 */
 /* -------------------------------------------------------------------------- */
 
 @minLength(1)
 @maxLength(64)
-@description('Name of the the environment which is used to generate a short unique hash used in all resources.')
+@description('Name of the environment which is used to generate a short unique hash used in all resources.')
 param environmentName string
 
-@description('Principal ID of the user runing the deployment')
+@description('Principal ID of the user running the deployment')
 param azurePrincipalId string
 
 @description('Extra tags to be applied to provisioned resources')
 param extraTags object = {}
 
-@description('The auth client id for the frontend and backend app')
-param authClientId string = ''
+@description('Location for all resources')
+param location string = resourceGroup().location
+
+/* ---------------------------- Shared Resources ---------------------------- */
+
+@maxLength(63)
+@description('Name of the log analytics workspace to deploy. If not specified, a name will be generated. The maximum length is 63 characters.')
+param logAnalyticsWorkspaceName string = ''
+
+@maxLength(255)
+@description('Name of the application insights to deploy. If not specified, a name will be generated. The maximum length is 255 characters.')
+param applicationInsightsName string = ''
+
+@description('Application Insights Location')
+param appInsightsLocation string = location
 
 @description('The auth tenant id for the frontend and backend app (leave blank in AZD to use your current tenant)')
 param authTenantId string = '' // Make sure authTenantId is set if not using AZD
 
-/* ---------------------------- Shared Resources ---------------------------- */
+@description('Name of the authentication client secret in the key vault')
+param authClientSecretName string = 'AZURE-AUTH-CLIENT-SECRET'
+
+@description('The auth client id for the frontend and backend app')
+param authClientId string = ''
+
+@description('Client secret of the authentication client')
+@secure()
+param authClientSecret string = ''
 
 @maxLength(50)
 @description('Name of the container registry to deploy. If not specified, a name will be generated. The name is global and must be unique within Azure. The maximum length is 50 characters.')
@@ -29,7 +52,7 @@ param containerRegistryName string = ''
 @description('Name of the container apps environment to deploy. If not specified, a name will be generated. The maximum length is 60 characters.')
 param containerAppsEnvironmentName string = ''
 
-/* --------------------------------- Backend -------------------------------- */
+/* -------------------------------- Frontend -------------------------------- */
 
 @maxLength(32)
 @description('Name of the frontend container app to deploy. If not specified, a name will be generated. The maximum length is 32 characters.')
@@ -47,27 +70,7 @@ param backendContainerAppName string = ''
 @description('Set if the backend container app already exists.')
 param backendExists bool = false
 
-@description('Name of the authentication client secret in the key vault')
-param authClientSecretName string = 'AZURE-AUTH-CLIENT-SECRET'
-
-@description('Client secret of the authentication client')
-@secure()
-param authClientSecret string = ''
-
-@maxLength(255)
-@description('Name of the application insights to deploy. If not specified, a name will be generated. The maximum length is 255 characters.')
-param applicationInsightsName string = ''
-
 /* -------------------------------------------------------------------------- */
-
-@description('Name of the Resource Group')
-param resourceGroupName string = resourceGroup().name
-
-@description('Location for all resources')
-param location string = resourceGroup().location
-
-@description('Name prefix for all resources')
-param namePrefix string = 'moneta'
 
 @description('Name of the Cosmos DB account')
 param cosmosDbAccountName string = toLower('cdb${uniqueString(resourceGroup().id)}')
@@ -83,12 +86,6 @@ param cosmosDbBankingContainerName string = 'user_fsi_bank_data'
 
 @description('Name of the Cosmos DB container for CRM data')
 param cosmosDbCRMContainerName string = 'clientdata'
-
-// Define the storage account name
-param storageAccountName string = 'sa${uniqueString(resourceGroup().id)}'
-
-@description('Application Insights Location')
-param appInsightsLocation string = location
 
 /* -------------------------------------------------------------------------- */
 /*                                  VARIABLES                                 */
@@ -107,125 +104,272 @@ var alphaNumericEnvironmentName = replace(replace(environmentName, '-', ''), ' '
 var tags = union(
   {
     'azd-env-name': environmentName
-    solution: 'moneta-agentic-gbb-ai-1.0'
+    solution: 'moneta'
   },
   extraTags
 )
 
-
-/* --------------------- Globally Unique Resource Names --------------------- */
-
-var _containerRegistryName = !empty(containerRegistryName)
-  ? containerRegistryName
-  : take('${abbreviations.containerRegistryRegistries}${take(alphaNumericEnvironmentName, 35)}${resourceToken}', 50)
-
-/* ----------------------------- Resource Names ----------------------------- */
-
-var _frontendContainerAppName = !empty(frontendContainerAppName)
-  ? frontendContainerAppName
-  : take('${abbreviations.appContainerApps}frontend-${environmentName}', 32)
-var _backendContainerAppName = !empty(backendContainerAppName)
-  ? backendContainerAppName
-  : take('${abbreviations.appContainerApps}backend-${environmentName}', 32)
-var _containerAppsEnvironmentName = !empty(containerAppsEnvironmentName)
-  ? containerAppsEnvironmentName
-  : take('${abbreviations.appManagedEnvironments}${environmentName}', 60)
-var _appIdentityName = take('${abbreviations.managedIdentityUserAssignedIdentities}${environmentName}', 32)
-var _keyVaultName = take('${abbreviations.keyVaultVaults}${alphaNumericEnvironmentName}${resourceToken}', 24)
-var _applicationInsightsName = !empty(applicationInsightsName) ? applicationInsightsName : take('${abbreviations.insightsComponents}${environmentName}', 255)
-
-
-/* -------------------------------------------------------------------------- */
+@description('Azure OpenAI API Version')
+var azureOpenAiApiVersion = '2024-12-01-preview'
 
 // Variables for AI Search index names and configurations
 var aiSearchCioIndexName = 'cio-index'
 var aiSearchFundsIndexName = 'funds-index'
 var aiSearchInsIndexName = 'ins-index'
 
-// Define common tags  
+/* --------------------- Globally Unique Resource Names --------------------- */
 
-/* -------------------------------------------------------------------------- */
-// [ IDENTITIES ] 
-module appIdentity './modules/app/identity.bicep' = {
-  name: 'appIdentity'
-  scope: resourceGroup()
-  params: {
-    location: location
-    identityName: _appIdentityName
-  }
-}
+var _applicationInsightsName = !empty(applicationInsightsName)
+  ? applicationInsightsName
+  : take('${abbreviations.insightsComponents}${environmentName}', 255)
+var _logAnalyticsWorkspaceName = !empty(logAnalyticsWorkspaceName)
+  ? logAnalyticsWorkspaceName
+  : take('${abbreviations.operationalInsightsWorkspaces}${environmentName}', 63)
+var _containerRegistryName = !empty(containerRegistryName)
+  ? containerRegistryName
+  : take('${abbreviations.containerRegistryRegistries}${take(alphaNumericEnvironmentName, 35)}${resourceToken}', 50)
+var _keyVaultName = take('${abbreviations.keyVaultVaults}${alphaNumericEnvironmentName}${resourceToken}', 24)
+var _storageAccountName = take(
+  '${abbreviations.storageStorageAccounts}${alphaNumericEnvironmentName}${resourceToken}',
+  24
+)
+var _azureOpenAiName = take('${abbreviations.cognitiveServicesOpenAI}${alphaNumericEnvironmentName}', 63)
+var _aiHubName = take('${abbreviations.aiPortalHub}${environmentName}', 260)
+var _aiProjectName = take('${abbreviations.aiPortalProject}${environmentName}', 260)
+var _aiSearchServiceName = take('${abbreviations.searchSearchServices}${environmentName}', 260)
+var _containerAppsEnvironmentName = !empty(containerAppsEnvironmentName)
+  ? containerAppsEnvironmentName
+  : take('${abbreviations.appManagedEnvironments}${environmentName}', 60)
 
-module backendIdentity './modules/app/identity-backend.bicep' = {
-  name: 'backendIdentity'
-  scope: resourceGroup()
-  params: {
-    location: location
-    identityName: 'backend-${_appIdentityName}'
-  }
-}
+/* ----------------------------- Resource Names ----------------------------- */
 
-resource searchIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: 'aiSearchService'
-  location: location
-}
+var _frontendIdentityName = take(
+  '${abbreviations.managedIdentityUserAssignedIdentities}frontend-${environmentName}',
+  32
+)
+var _frontendContainerAppName = !empty(frontendContainerAppName)
+  ? frontendContainerAppName
+  : take('${abbreviations.appContainerApps}frontend-${environmentName}', 32)
+var _backendIdentityName = take('${abbreviations.managedIdentityUserAssignedIdentities}backend-${environmentName}', 32)
+var _backendContainerAppName = !empty(backendContainerAppName)
+  ? backendContainerAppName
+  : take('${abbreviations.appContainerApps}backend-${environmentName}', 32)
 
 /* -------------------------------------------------------------------------- */
 /*                                  RESOURCES                                 */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------- AI Infra  ------------------------------- */
 
-// ------------------------
-// [ Array of OpenAI Model deployments ]
-param aoaiGpt4ModelName string = 'gpt-4o'
-param aoaiGpt4ModelVersion string = '2024-05-13'
-param azureOpenaiApiVersion string = '2024-08-01-preview'
-param embedModel string = 'text-embedding-3-large'
-
-var deployments = [
-  {
-    name: embedModel
-    model: {
-      format: 'OpenAI'
-      name: embedModel
-      version: '1'
-    }
-    sku: { 
-      name: 'Standard' 
-      capacity: 50 }
+module hub 'modules/ai/hub.bicep' = {
+  name: 'hub'
+  params: {
+    location: location
+    tags: tags
+    name: _aiHubName
+    displayName: _aiHubName
+    keyVaultId: keyVault.outputs.resourceId
+    storageAccountId: storageAccount.outputs.resourceId
+    containerRegistryId: containerRegistry.outputs.resourceId
+    applicationInsightsId: appInsightsComponent.outputs.resourceId
+    openAiName: azureOpenAi.outputs.name
+    openAiConnectionName: 'aoai-connection'
+    openAiContentSafetyConnectionName: 'aoai-content-safety-connection'
+    aiSearchName: searchService.outputs.name
+    aiSearchConnectionName: 'search-service-connection'
   }
-  {
-    name: '${aoaiGpt4ModelName}-${aoaiGpt4ModelVersion}'
-    model: {
-      format: 'OpenAI'
-      name: aoaiGpt4ModelName
-      version: aoaiGpt4ModelVersion
-    }
-    sku: { 
-      name: 'GlobalStandard'
-      capacity:  30
-    }
-  }]
+}
 
-module openAi 'br/public:avm/res/cognitive-services/account:0.8.0' = {
-  name: 'openai'
+module project 'modules/ai/project.bicep' = {
+  name: 'project'
+  params: {
+    location: location
+    tags: tags
+    name: _aiProjectName
+    displayName: _aiProjectName
+    hubName: hub.outputs.name
+  }
+}
+
+module storageAccount 'br/public:avm/res/storage/storage-account:0.15.0' = {
+  name: 'storageAccount'
   scope: resourceGroup()
   params: {
-    name: 'oai-${resourceToken}'
     location: location
-    tags: union(tags, { 'azd-service-name': 'aoai-${tags['azd-env-name']}' })
-    kind: 'OpenAI'
-    customSubDomainName: 'oai-${resourceToken}'
-    sku: 'S0'
-    deployments: deployments
-    disableLocalAuth: false
-    publicNetworkAccess: 'Enabled'
-    networkAcls: {}
+    tags: tags
+    name: _storageAccountName
+    kind: 'StorageV2'
+    publicNetworkAccess: 'Enabled' // Necessary for uploading documents to storage container
+    networkAcls: {
+      defaultAction: 'Allow'
+      bypass: 'AzureServices'
+    }
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+ 
+    blobServices: {
+      deleteRetentionPolicyDays: 2
+      deleteRetentionPolicyEnabled: true
+      containers: [
+        {
+          name: aiSearchInsIndexName
+          publicAccess: 'None'
+        }
+        {
+          name: aiSearchCioIndexName
+          publicAccess: 'None'
+        }
+        {
+          name: aiSearchFundsIndexName
+          publicAccess: 'None'
+        }
+        {
+          name: 'default'
+          publicAccess: 'None'
+        }
+      ]
+      // corsRules: [
+      //   {
+      //     allowedOrigins: [
+      //       'https://mlworkspace.azure.ai'
+      //       'https://ml.azure.com'
+      //       'https://*.ml.azure.com'
+      //       'https://ai.azure.com'
+      //       'https://*.ai.azure.com'
+      //       'https://mlworkspacecanary.azure.ai'
+      //       'https://mlworkspace.azureml-test.net'
+      //     ]
+      //     allowedMethods: [
+      //       'GET'
+      //       'HEAD'
+      //       'POST'
+      //       'PUT'
+      //       'DELETE'
+      //       'OPTIONS'
+      //       'PATCH'
+      //     ]
+      //     maxAgeInSeconds: 1800
+      //     exposedHeaders: [
+      //       '*'
+      //     ]
+      //     allowedHeaders: [
+      //       '*'
+      //     ]
+      //   }
+      // ]
+     deleteRetentionPolicy: {
+        allowPermanentDelete: false
+        enabled: false
+      }
+      shareDeleteRetentionPolicy: {
+        enabled: true
+        days: 7
+      }
+    }
+    roleAssignments: [
+            {
+              roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+              principalId: searchIdentity.properties.principalId
+              principalType: 'ServicePrincipal'
+            }
+            {
+              roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+              principalId: azurePrincipalId
+              principalType: 'User'
+            }
+            {
+              roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+              principalId: backendIdentity.outputs.principalId
+              principalType: 'ServicePrincipal'
+            }
+      ]
+  }
+}
+
+// Also rerefernced in the outputs with the sequential index
+// order of the model definitions is important
+param embedModel string = 'text-embedding-3-large'
+var deployments = [
+     {
+        name: 'gpt-4o-2024-08-06'
+        sku: {
+          name: 'GlobalStandard'
+          capacity: 50
+        }
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o'
+          version: '2024-08-06'
+        }
+        versionUpgradeOption: 'OnceCurrentVersionExpired'
+      }
+      {
+        name: embedModel
+        model: {
+          format: 'OpenAI'
+          name: embedModel
+          version: '1'
+        }
+        sku: { 
+          name: 'Standard' 
+          capacity: 50 }
+      }
+    ]
+
+module azureOpenAi 'modules/ai/cognitiveservices.bicep' = {
+  name: 'cognitiveServices'
+  params: {
+    location: location
+    tags: tags
+    name: _azureOpenAiName
+    kind: 'AIServices'
+    customSubDomainName: _azureOpenAiName
+    deployments:  deployments
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     roleAssignments: [
       {
         roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
         principalId: backendIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
       }
+      {
+        roleDefinitionIdOrName: 'Cognitive Services OpenAI Contributor'
+        principalId: azurePrincipalId
+      }
+    ]
+  }
+}
+
+// TEMP SOLUTION : Used for data load only.
+// TODO: switch the data load script to the SDK that supports cognitive services domain
+var embeddingDeployments = [
+      {
+        name: embedModel
+        model: {
+          format: 'OpenAI'
+          name: embedModel
+          version: '1'
+        }
+        sku: { 
+          name: 'Standard' 
+          capacity: 50 }
+      }
+    ]
+
+module openAiEmbeddings 'br/public:avm/res/cognitive-services/account:0.8.0' = {
+  name: 'openai-dataload-embeddings'
+  scope: resourceGroup()
+  params: {
+    name: 'oai-${resourceToken}'
+    location: location
+    kind: 'OpenAI'
+    customSubDomainName: 'oai-load-${resourceToken}'
+    sku: 'S0'
+    deployments: embeddingDeployments
+    disableLocalAuth: false
+    publicNetworkAccess: 'Enabled'
+    networkAcls: {}
+    roleAssignments: [
       {
         roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
         principalId: searchIdentity.properties.principalId
@@ -240,233 +384,68 @@ module openAi 'br/public:avm/res/cognitive-services/account:0.8.0' = {
   }
 }
 
-module containerRegistry 'modules/app/registry.bicep' = {
-  name: 'registry'
+module searchService 'br/public:avm/res/search/search-service:0.8.2' = {
+  name: _aiSearchServiceName
   scope: resourceGroup()
   params: {
-    location: location
-    identityName: appIdentity.outputs.name
-    backendIdentityName: backendIdentity.outputs.name
-    tags: tags
-    name: '${abbreviations.containerRegistryRegistries}${resourceToken}'
-  }
-}
-
-resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: _containerAppsEnvironmentName
-  location: location
-  tags: tags
-  properties: {
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: logAnalytics.properties.customerId
-        sharedKey: logAnalytics.listKeys().primarySharedKey
-      }
-    }
-    daprAIConnectionString: appInsights.properties.ConnectionString
-  }
-}
-
-module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
-  name: 'keyVault'
-  scope: resourceGroup()
-  params: {
+    name: toLower('search${uniqueString(resourceGroup().id)}')
     location: location
     tags: tags
-    name: _keyVaultName
-    enableRbacAuthorization: true
+    // disableLocalAuth: true
+    // semanticSearch: 'standard'
+    sku: 'basic'
+    replicaCount: 1
+    partitionCount: 1
+    hostingMode: 'default'
+    managedIdentities: { userAssignedResourceIds: [searchIdentity.id] }
     roleAssignments: [
       {
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-        principalId: appIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
+        roleDefinitionIdOrName: 'Search Index Data Contributor'
         principalId: backendIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
       }
       {
-        principalId: azurePrincipalId
-        roleDefinitionIdOrName: 'Key Vault Administrator'
+        roleDefinitionIdOrName: 'Search Service Contributor'
+        principalId: backendIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
       }
-    ]
-    secrets: [
       {
-        name: authClientSecretName
-        value: authClientSecret
+        roleDefinitionIdOrName: 'Search Index Data Contributor'
+        principalId: azurePrincipalId
+        principalType: 'User'
+      }
+      {
+        roleDefinitionIdOrName: 'Search Service Contributor'
+        principalId: azurePrincipalId
+        principalType: 'User'
       }
     ]
   }
 }
 
-/* ------------------------------ Frontend App ------------------------------ */
-
-module frontendApp 'modules/app/containerapp.bicep' = {
-  name: 'frontend-container-app'
-  scope: resourceGroup()
-  params: {
-    name: _frontendContainerAppName
-    tags: tags
-    identityId: appIdentity.outputs.identityId
-    containerAppsEnvironmentName: containerAppsEnvironment.name
-    containerRegistryName: containerRegistry.outputs.name
-    exists: frontendExists
-    serviceName: 'frontend' // Must match the service name in azure.yaml
-    env: {
-      // BACKEND_ENDPOINT: backendApp.outputs.URL
-      BACKEND_ENDPOINT: backendApp.outputs.internalUrl
-
-      // required for container app daprAI
-      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
-
-      AZURE_CLIENT_ID: appIdentity.outputs.clientId
-    }
-    keyvaultIdentities: {
-      'microsoft-provider-authentication-secret': {
-        keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
-        identity: appIdentity.outputs.identityId
-      }
-    }
-  }
-}
-
-module frontendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
-  name: 'frontend-container-app-auth-module'
-  params: {
-    name: frontendApp.outputs.name
-    clientId: authClientId
-    clientSecretName: 'microsoft-provider-authentication-secret'
-    openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
-    unauthenticatedClientAction: 'RedirectToLoginPage'
-    allowedApplications:[
-      authClientId
-      '04b07795-8ddb-461a-bbee-02f9e1bf7b46' // AZ CLI for testing purposes
-    ]
-  }
-}
-
-/* ------------------------------ Backend App ------------------------------- */
-
-module backendApp 'modules/app/containerapp.bicep' = {
-  name: 'backend-container-app'
-  scope: resourceGroup()
-  params: {
-    name: _backendContainerAppName
-    tags: tags
-    identityId: backendIdentity.outputs.identityId 
-    containerAppsEnvironmentName: containerAppsEnvironment.name
-    containerRegistryName: containerRegistry.outputs.name
-    exists: backendExists
-    serviceName: 'backend' // Must match the service name in azure.yaml
-    externalIngressAllowed: false
-    env: {
-      AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
-      AI_SEARCH_ENDPOINT: 'https://${searchService.outputs.name}.search.windows.net'
-      AI_SEARCH_FUNDS_INDEX_NAME: aiSearchFundsIndexName
-      AI_SEARCH_INS_INDEX_NAME: aiSearchInsIndexName
-      AZURE_OPENAI_API_VERSION: azureOpenaiApiVersion
-      AZURE_OPENAI_DEPLOYMENT_NAME: deployments[1].name
-      AZURE_OPENAI_ENDPOINT: openAi.outputs.endpoint
-      COSMOSDB_CONTAINER_CLIENT_NAME: cosmosDbCRMContainerName
-      COSMOSDB_CONTAINER_FSI_BANK_USER_NAME: cosmosDbBankingContainerName
-      COSMOSDB_CONTAINER_FSI_INS_USER_NAME: cosmosDbInsuranceContainerName
-      COSMOSDB_DATABASE_NAME: cosmosDbDatabaseName
-      COSMOSDB_ENDPOINT: cosmosDbAccount.properties.documentEndpoint
-      HANDLER_TYPE: 'semantickernel'
-
-      // required for container app daprAI
-      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
-
-      // required for managed identity
-      AZURE_CLIENT_ID: backendIdentity.outputs.clientId
-    }
-    keyvaultIdentities: {
-      'microsoft-provider-authentication-secret': {
-        keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
-        identity: backendIdentity.outputs.identityId
-      }
-    }
-  }
-}
-
-// module backendContainerAppAuth 'modules/app/container-apps-auth.bicep' = {
-//   name: 'backend-container-app-auth-module'
-//   params: {
-//     name: backendApp.outputs.name
-//     clientId: authClientId
-//     clientSecretName: 'microsoft-provider-authentication-secret'
-//     openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
-//     unauthenticatedClientAction: 'Return401'
-//     allowedApplications:[
-//       authClientId
-//       '04b07795-8ddb-461a-bbee-02f9e1bf7b46' // AZ CLI for testing purposes
-//     ]
-//   }
-// }
-
-// Cosmos DB Role Assignments
-resource cosmosDbRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  scope: cosmosDbAccount
-  name: 'b24988ac-6180-42a0-ab88-20f7382dd24c' // Built-in role: Cosmos DB Account Reader Role
-}
-
-resource cosmosDbRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbRoleDefinition.id)
-  scope: cosmosDbAccount
-  properties: {
-    principalId: backendIdentity.outputs.principalId
-    roleDefinitionId: cosmosDbRoleDefinition.id
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource cosmosDbDataContributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2021-04-15' existing = {
-  parent: cosmosDbAccount
-  name: '00000000-0000-0000-0000-000000000002' // Built-in Data Contributor Role
-}
-
-resource cosmosDbDataContributorRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2021-04-15' = {
-  parent: cosmosDbAccount
-  name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbDataContributorRoleDefinition.id)
-  properties: {
-    roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
-    principalId: backendIdentity.outputs.principalId
-    scope: cosmosDbAccount.id
-  }
-}
-
-resource cosmosDbDataContributorRoleAssignmentPrincipal 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2021-04-15' = {
-  parent: cosmosDbAccount
-  name: guid(cosmosDbAccount.id, azurePrincipalId, cosmosDbDataContributorRoleDefinition.id)
-  properties: {
-    roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
-    principalId: azurePrincipalId
-    scope: cosmosDbAccount.id
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-
-// Log Analytics Workspace
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
-  name: 'logAnalyticsWorkspace'
+resource searchIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'aiSearchService'
   location: location
-  properties: {
-    retentionInDays: 30
-  }
-  tags: tags
 }
 
-// Application Insights instance
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+/* ---------------------------- Observability  ------------------------------ */
+
+module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.9.1' = {
+  name: 'workspaceDeployment'
+  params: {
+    name: _logAnalyticsWorkspaceName
+    location: location
+    tags: tags
+    dataRetention: 30
+  }
+}
+
+module appInsightsComponent 'br/public:avm/res/insights/component:0.4.2' = {
   name: _applicationInsightsName
-  location: appInsightsLocation
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalytics.id
+  params: {
+    name: _applicationInsightsName
+    location: appInsightsLocation
+    workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
   }
 }
 
@@ -591,96 +570,228 @@ resource cosmosDbCRMContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
   tags: tags
 }
 
-/* -------------------------------------------------------------------------- */
-// Storage Account
-module storage 'br/public:avm/res/storage/storage-account:0.9.1' = {
-  name: storageAccountName
+
+
+/* ------------------------ Common App Resources  -------------------------- */
+
+module containerRegistry 'modules/app/container-registry.bicep' = {
+  name: _containerRegistryName
   scope: resourceGroup()
   params: {
-    name: storageAccountName
+    location: location
+    pullingIdentityNames: [
+      _frontendIdentityName
+      _backendIdentityName
+    ]
+    tags: tags
+    name: '${abbreviations.containerRegistryRegistries}${resourceToken}'
+  }
+}
+
+module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.8.1' = {
+  name: 'containerAppsEnvironment'
+  params: {
+    name: _containerAppsEnvironmentName
     location: location
     tags: tags
-    kind: 'StorageV2'
-    skuName: 'Standard_LRS'
-    publicNetworkAccess: 'Enabled' // Necessary for uploading documents to storage container
-    networkAcls: {
-      defaultAction: 'Allow'
-      bypass: 'AzureServices'
-    }
-    allowBlobPublicAccess: false
-    allowSharedKeyAccess: false
-    blobServices: {
-      deleteRetentionPolicyDays: 2
-      deleteRetentionPolicyEnabled: true
-      containers: [
-        {
-          name: aiSearchInsIndexName
-          publicAccess: 'None'
-        }
-        {
-          name: aiSearchCioIndexName
-          publicAccess: 'None'
-        }
-        {
-          name: aiSearchFundsIndexName
-          publicAccess: 'None'
-        }
-      ]
-    }
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    daprAIConnectionString: appInsightsComponent.outputs.connectionString
+    zoneRedundant: false
+  }
+}
+
+module keyVault 'br/public:avm/res/key-vault/vault:0.11.0' = {
+  name: 'keyVault'
+  scope: resourceGroup()
+  params: {
+    location: location
+    tags: tags
+    name: _keyVaultName
+    enableRbacAuthorization: true
+    enablePurgeProtection: false // Set to true to if you deploy in production and want to protect against accidental deletion
     roleAssignments: [
       {
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-        principalId: searchIdentity.properties.principalId
+        roleDefinitionIdOrName: 'Key Vault Secrets User'
+        principalId: frontendIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-        principalId: azurePrincipalId
-        principalType: 'User'
+        roleDefinitionIdOrName: 'Key Vault Secrets User'
+        principalId: backendIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
       }
+      {
+        principalId: azurePrincipalId
+        roleDefinitionIdOrName: 'Key Vault Administrator'
+      }
+    ]
+    secrets: empty(authClientSecret)
+      ? []
+      : [
+          {
+            name: authClientSecretName
+            value: authClientSecret
+          }
+        ]
+  }
+}
+
+/* ------------------------------ Frontend App ------------------------------ */
+
+module frontendIdentity './modules/app/identity.bicep' = {
+  name: 'frontendIdentity'
+  scope: resourceGroup()
+  params: {
+    location: location
+    identityName: _frontendIdentityName
+  }
+}
+
+var keyvaultIdentities = authClientSecret != ''
+  ? {
+      'microsoft-provider-authentication-secret': {
+        keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
+        identity: frontendIdentity.outputs.resourceId
+      }
+    }
+  : {}
+
+module frontendApp 'modules/app/container-apps.bicep' = {
+  name: 'frontend-container-app'
+  scope: resourceGroup()
+  params: {
+    name: _frontendContainerAppName
+    tags: tags
+    identityId: frontendIdentity.outputs.resourceId
+    containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
+    containerRegistryName: containerRegistry.outputs.name
+    exists: frontendExists
+    serviceName: 'frontend' // Must match the service name in azure.yaml
+    env: {
+      // BACKEND_ENDPOINT: backendApp.outputs.URL
+      BACKEND_ENDPOINT: backendApp.outputs.URL
+
+      // Required for the frontend app to ask for a token for the backend app
+      AZURE_CLIENT_APP_ID: authClientId
+
+      // Required for container app daprAI
+      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsComponent.outputs.connectionString
+
+      // Required for managed identity
+      AZURE_CLIENT_ID: frontendIdentity.outputs.clientId
+      
+    }
+    keyvaultIdentities: keyvaultIdentities
+  }
+}
+
+module frontendContainerAppAuth 'modules/app/container-apps-auth.bicep' = if (authClientSecret != '') {
+  name: 'frontend-container-app-auth-module'
+  params: {
+    name: frontendApp.outputs.name
+    clientId: authClientId
+    clientSecretName: 'microsoft-provider-authentication-secret'
+    openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
+    unauthenticatedClientAction: 'RedirectToLoginPage'
+    allowedApplications: [
+      '04b07795-8ddb-461a-bbee-02f9e1bf7b46' // AZ CLI for testing purposes
     ]
   }
 }
 
-/* -------------------------------------------------------------------------- */
-// AI Search Service (Azure Cognitive Search)
+/* ------------------------------ Backend App ------------------------------- */
 
-module searchService 'br/public:avm/res/search/search-service:0.7.1' = {
-  name: 'search-service'
+module backendIdentity './modules/app/identity.bicep' = {
+  name: 'backendIdentity'
   scope: resourceGroup()
   params: {
-    name: toLower('search${uniqueString(resourceGroup().id)}')
     location: location
+    identityName: _backendIdentityName
+  }
+}
+
+module backendApp 'modules/app/container-apps.bicep' = {
+  name: 'backend-container-app'
+  scope: resourceGroup()
+  params: {
+    name: _backendContainerAppName
     tags: tags
-    // disableLocalAuth: true
-    // semanticSearch: 'standard'
-    sku: 'basic'
-    replicaCount: 1
-    partitionCount: 1
-    hostingMode: 'default'
-    managedIdentities: { userAssignedResourceIds: [searchIdentity.id] }
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: 'Search Index Data Contributor'
-        principalId: backendIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: 'Search Service Contributor'
-        principalId: backendIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: 'Search Index Data Contributor'
-        principalId: azurePrincipalId
-        principalType: 'User'
-      }
-      {
-        roleDefinitionIdOrName: 'Search Service Contributor'
-        principalId: azurePrincipalId
-        principalType: 'User'
-      }
-    ]
+    identityId: backendIdentity.outputs.resourceId
+    containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
+    containerRegistryName: containerRegistry.outputs.name
+    exists: backendExists
+    serviceName: 'backend' // Must match the service name in azure.yaml
+    externalIngressAllowed: false // Set to true if you intend to call backend from the locallly deployed frontend
+    // Setting to true will allow traffic from anywhere
+    env: {
+      // Required for container app daprAI
+      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsComponent.outputs.connectionString
+      AZURE_RESOURCE_GROUP: resourceGroup().name
+      SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS: true
+      SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE: true // OBS! You might want to remove this in production
+
+      // Required for managed identity
+      AZURE_CLIENT_ID: backendIdentity.outputs.clientId
+      AZURE_OPENAI_ENDPOINT: azureOpenAi.outputs.endpoint
+      AZURE_OPENAI_DEPLOYMENT_NAME: deployments[0].name
+      AZURE_OPENAI_API_VERSION: azureOpenAiApiVersion
+
+      // OLD TO BE MIGRATED
+      AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
+      AI_SEARCH_ENDPOINT: 'https://${searchService.outputs.name}.search.windows.net'
+      AI_SEARCH_FUNDS_INDEX_NAME: aiSearchFundsIndexName
+      AI_SEARCH_INS_INDEX_NAME: aiSearchInsIndexName
+
+      COSMOSDB_CONTAINER_CLIENT_NAME: cosmosDbCRMContainerName
+      COSMOSDB_CONTAINER_FSI_BANK_USER_NAME: cosmosDbBankingContainerName
+      COSMOSDB_CONTAINER_FSI_INS_USER_NAME: cosmosDbInsuranceContainerName
+      COSMOSDB_DATABASE_NAME: cosmosDbDatabaseName
+      COSMOSDB_ENDPOINT: cosmosDbAccount.properties.documentEndpoint
+
+      HANDLER_TYPE: 'semantickernel'
+
+    }
+  }
+}
+
+// Cosmos DB Role Assignments
+resource cosmosDbRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: cosmosDbAccount
+  name: 'b24988ac-6180-42a0-ab88-20f7382dd24c' // Built-in role: Cosmos DB Account Reader Role
+}
+
+resource cosmosDbRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbRoleDefinition.id)
+  scope: cosmosDbAccount
+  properties: {
+    principalId: backendIdentity.outputs.principalId
+    roleDefinitionId: cosmosDbRoleDefinition.id
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource cosmosDbDataContributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2021-04-15' existing = {
+  parent: cosmosDbAccount
+  name: '00000000-0000-0000-0000-000000000002' // Built-in Data Contributor Role
+}
+
+resource cosmosDbDataContributorRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2021-04-15' = {
+  parent: cosmosDbAccount
+  name: guid(cosmosDbAccount.id, _backendContainerAppName, cosmosDbDataContributorRoleDefinition.id)
+  properties: {
+    roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
+    principalId: backendIdentity.outputs.principalId
+    scope: cosmosDbAccount.id
+  }
+}
+
+resource cosmosDbDataContributorRoleAssignmentPrincipal 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2021-04-15' = {
+  parent: cosmosDbAccount
+  name: guid(cosmosDbAccount.id, azurePrincipalId, cosmosDbDataContributorRoleDefinition.id)
+  properties: {
+    roleDefinitionId: cosmosDbDataContributorRoleDefinition.id
+    principalId: azurePrincipalId
+    scope: cosmosDbAccount.id
   }
 }
 
@@ -689,23 +800,50 @@ module searchService 'br/public:avm/res/search/search-service:0.7.1' = {
 /* -------------------------------------------------------------------------- */
 
 // Outputs are automatically saved in the local azd environment .env file.
-// To see these outputs, run `azd env get-values`,  or `azd env get-values --output json` for json output.
+// To see these outputs, run `azd env get-values`,  or
+// `azd env get-values --output json` for json output.
 // To generate your own `.env` file run `azd env get-values > .env`
-// To use set these outputs as environment variables in your shell run `source <(azd env get-values | sed 's/^/export /')`
 
 @description('The endpoint of the container registry.') // necessary for azd deploy
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
 
-@description('Endpoint URL of string Frontend service') // reused by identity management scripts
+@description('Endpoint URL of the Frontend service')
 output SERVICE_FRONTEND_URL string = frontendApp.outputs.URL
 
-@description('Endpoint URL of the Backend service') // reused by identity management scripts
+@description('Endpoint URL of the Backend service')
 output SERVICE_BACKEND_URL string = backendApp.outputs.URL
 
-/* -------------------------------------------------------------------------- */
+@description('ID of the tenant we are deploying to')
+output AZURE_AUTH_TENANT_ID string = authTenantId
+
+@description('Principal ID of the user running the deployment')
+output AZURE_PRINCIPAL_ID string = azurePrincipalId
+
+@description('Application registration client ID')
+output AZURE_CLIENT_APP_ID string = authClientId
+
+@description('Azure OpenAI name')
+output AZURE_OPENAI_NAME string = azureOpenAi.outputs.name
+
+@description('Azure OpenAI endpoint')
+output AZURE_OPENAI_ENDPOINT string = azureOpenAi.outputs.endpoint
+
+@description('Azure OpenAI Core Model Deployment Name')
+output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[0].name
+
+@description('Azure OpenAI Core Model Deployment Name')
+output AZURE_OPENAI_API_VERSION string = azureOpenAiApiVersion
+
+@description('Application Insights name')
+output AZURE_APPLICATION_INSIGHTS_NAME string = appInsightsComponent.outputs.name
+
+@description('Log Analytics Workspace name')
+output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logAnalyticsWorkspace.outputs.name
+
+@description('Application Insights connection string')
+output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsightsComponent.outputs.connectionString
 
 output COSMOSDB_ACCOUNT_NAME string = cosmosDbAccountName
-
 output COSMOSDB_ENDPOINT string = cosmosDbAccount.properties.documentEndpoint
 output COSMOSDB_DATABASE_NAME string = cosmosDbDatabaseName
 
@@ -717,17 +855,18 @@ output AI_SEARCH_ENDPOINT string = 'https://${searchService.outputs.name}.search
 output AI_SEARCH_PRINCIPAL_ID string = searchIdentity.properties.principalId
 output AI_SEARCH_IDENTITY_ID string = searchIdentity.id
 
-output AZURE_OPENAI_API_VERSION string = azureOpenaiApiVersion
-output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[1].name
-output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
-output AZURE_PRINCIPAL_ID string = azurePrincipalId
-output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = deployments[0].name
-output AZURE_OPENAI_EMBEDDING_MODEL string = deployments[0].model.name
+output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = embeddingDeployments[0].name
+output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingDeployments[0].model.name
+output AZURE_OPENAI_EMBEDDING_ENDPOINT string = openAiEmbeddings.outputs.endpoint
 
 // Must match the index names created automatically by postdeploy
 output AI_SEARCH_CIO_INDEX_NAME string = aiSearchCioIndexName
 output AI_SEARCH_FUNDS_INDEX_NAME string = aiSearchFundsIndexName
 output AI_SEARCH_INS_INDEX_NAME string = aiSearchInsIndexName
 
-output AZURE_STORAGE_ACCOUNT_ID string = storage.outputs.resourceId
-output AZURE_STORAGE_ACCOUNT_ENDPOINT string = storage.outputs.primaryBlobEndpoint
+output AZURE_STORAGE_ACCOUNT_ID string = storageAccount.outputs.resourceId
+output AZURE_STORAGE_ACCOUNT_ENDPOINT string = storageAccount.outputs.primaryBlobEndpoint
+
+@description('Semantic Kernel Diagnostics')
+output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS bool = true
+output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE bool = true

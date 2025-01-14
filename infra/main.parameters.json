@@ -1,30 +1,30 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-      "environmentName": {
-        "value": "${AZURE_ENV_NAME}"
-      },
-      "location": {
-        "value": "${AZURE_LOCATION}"
-      },
-      "azurePrincipalId": {
-        "value": "${AZURE_PRINCIPAL_ID}"
-      },
-      "frontendExists": {
-        "value": "${SERVICE_FRONTEND_RESOURCE_EXISTS=false}"
-      },
-      "backendExists": {
-        "value": "${SERVICE_BACKEND_RESOURCE_EXISTS=false}"
-      },
-      "authTenantId": {
-        "value": "${AZURE_AUTH_TENANT_ID}"
-      },
-      "authClientId": {
-        "value": "${AZURE_CLIENT_APP_ID}"
-      },
-      "authClientSecret": {
-        "value": "${AZURE_CLIENT_APP_SECRET}"
-      }
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "authTenantId": {
+      "value": "${AZURE_AUTH_TENANT_ID}"
+    },
+    "authClientId": {
+      "value": "${AZURE_CLIENT_APP_ID}"
+    },
+    "authClientSecret": {
+      "value": "${AZURE_CLIENT_APP_SECRET}"
+    },
+    "frontendExists": {
+      "value": "${SERVICE_FRONTEND_RESOURCE_EXISTS=false}"
+    },
+    "backendExists": {
+      "value": "${SERVICE_BACKEND_RESOURCE_EXISTS=false}"
+    },
+    "azurePrincipalId": {
+      "value": "${AZURE_PRINCIPAL_ID}"
     }
+  }
 }

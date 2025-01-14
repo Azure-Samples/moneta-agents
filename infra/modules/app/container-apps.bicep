@@ -19,7 +19,7 @@ param serviceName string
 param containerRegistryName string
 
 @description('Name of the container apps environment to build the app in')
-param containerAppsEnvironmentName string 
+param containerAppsEnvironmentName string
 
 @description('The keyvault identities required for the container')
 @secure()
@@ -54,7 +54,7 @@ var keyvaultIdentitySecrets = [for secret in items(keyvaultIdentities): {
   identity: secret.value.identity
 }]
 
-resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' existing = { name: containerAppsEnvironmentName } 
+resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' existing = { name: containerAppsEnvironmentName }
 
 module fetchLatestImage './fetch-container-image.bicep' = {
   name: '${name}-fetch-image'
@@ -81,7 +81,7 @@ resource app 'Microsoft.App/containerApps@2024-08-02-preview' = {
         transport: 'auto'
         corsPolicy: {
           allowedOrigins: [ 'https://portal.azure.com', 'https://ms.portal.azure.com' ]
-        }        
+        }
       }
       registries: [
         {
