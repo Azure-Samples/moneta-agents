@@ -46,7 +46,7 @@ class InsuranceOrchestrator(SemanticOrchastrator):
         """Speaker selection strategy for the agent group chat."""
         definitions = "\n".join([f"{agent.name}: {agent.description}" for agent in agents])
         selection_function = KernelFunctionFromPrompt(
-                function_name="selection",
+                function_name="SpeakerSelector",
                 prompt_execution_settings=AzureChatPromptExecutionSettings(
                     temperature=0),
                 prompt=fr"""

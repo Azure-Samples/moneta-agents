@@ -1,4 +1,4 @@
-name: "Query"
+name: "QueryAgent"
 temperature: 0.2
 included_plugins:
     - "crm"

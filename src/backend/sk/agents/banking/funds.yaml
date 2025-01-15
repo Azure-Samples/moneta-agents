@@ -1,4 +1,4 @@
-name: "Funds"
+name: "FundsAgent"
 temperature: 0.1
 included_plugins:
     - "funds"
