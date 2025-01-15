@@ -15,6 +15,7 @@ from sk.orchestrators.semantic_orchestrator import SemanticOrchastrator
 
 class InsuranceOrchestrator(SemanticOrchastrator):
     def __init__(self):
+        super().__init__()
         self.logger = logging.getLogger(__name__)
         self.logger.debug("Insurance Orchestrator init")
 
@@ -30,14 +31,8 @@ class InsuranceOrchestrator(SemanticOrchastrator):
             index_name = os.getenv('AI_SEARCH_INS_INDEX_NAME'),
             semantic_configuration_name = 'default')
 
-        gpt4o_service = AzureChatCompletion(service_id="gpt-4o",
-                                            endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                                            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-                                            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-                                            ad_token_provider=get_bearer_token_provider(DefaultAzureCredential(),"https://cognitiveservices.azure.com/.default"))
-
         self.kernel = Kernel(
-            services=[gpt4o_service],
+            services=[self.gpt4o_service],
             plugins=[
                 KernelPlugin.from_object(plugin_instance=crm, plugin_name="crm"),
                 KernelPlugin.from_object(plugin_instance=product, plugin_name="product"),

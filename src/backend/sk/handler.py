@@ -60,7 +60,7 @@ class SemanticKernelHandler:
             return {"status_code": 400, "error": "Use case not recognized"}
         
         orchestrator = self.orchestrators[usecase_type]
-        reply = await orchestrator.process_conversation(conversation_messages)
+        reply = await orchestrator.process_conversation(user_id, conversation_messages)
 
         # Store updated conversation
         conversation_messages.append(reply)

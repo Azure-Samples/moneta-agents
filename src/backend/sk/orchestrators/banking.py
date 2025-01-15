@@ -15,11 +15,15 @@ from sk.skills.cio_facade import CIOFacade
 from sk.skills.news_facade import NewsFacade
 from sk.orchestrators.semantic_orchestrator import SemanticOrchastrator
 
+from semantic_kernel.connectors.ai.azure_ai_inference import AzureAIInferenceChatCompletion
+import azure.ai.inference.aio as aio_inference
+import azure.identity.aio as aio_identity
+
 class BankingOrchestrator(SemanticOrchastrator):
     def __init__(self):
+        super().__init__()
         self.logger = logging.getLogger(__name__)
         self.logger.debug("Banking Orchestrator init")
-        
         
         # Initialize required services and kernel
         self.crm = CRMFacade(
@@ -42,14 +46,8 @@ class BankingOrchestrator(SemanticOrchastrator):
         
         self.news = NewsFacade()
         
-        gpt4o_service = AzureChatCompletion(service_id="gpt-4o",
-                                            endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                                            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-                                            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-                                            ad_token_provider=get_bearer_token_provider(DefaultAzureCredential(),"https://cognitiveservices.azure.com/.default"))
-
         self.kernel = Kernel(
-            services=[gpt4o_service],
+            services=[self.gpt4o_service],
             plugins=[
                 KernelPlugin.from_object(plugin_instance=self.crm, plugin_name="crm"),
                 KernelPlugin.from_object(plugin_instance=self.product, plugin_name="funds"),
