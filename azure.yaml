@@ -1,17 +1,6 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
-
-# This is an example starter azure.yaml file containing several example services in comments below.
-# Make changes as needed to describe your application setup.
-# To learn more about the azure.yaml file, visit https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/azd-schema
+# see https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/azd-schema
 name: moneta
 services:
-  frontend:
-    language: python
-    project: src/frontend
-    host: containerapp
-    docker:
-      path: ./Dockerfile
-      remoteBuild: true
   backend:
     language: python
     project: src/backend
@@ -19,30 +8,49 @@ services:
     docker:
       path: ./Dockerfile
       remoteBuild: true
+  frontend:
+    language: python
+    project: src/frontend
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      remoteBuild: true
 hooks:
-    preprovision:
-      # windows:
-      #   shell: pwsh
-      #   run: ./scripts/auth_init.ps1
-      #   interactive: true
-      #   continueOnError: false
-      posix:
-        shell: sh
-        run: ./scripts/preprovision.sh
-        interactive: true
-        continueOnError: false
-    postprovision:
-      # windows:
-      #   shell: pwsh
-      #   run: ./scripts/auth_update.ps1;
-      #   interactive: true
-      #   continueOnError: false
-      posix:
-        shell: sh
-        run: ./scripts/postprovision.sh
-        interactive: true
-        continueOnError: false
-    postdeploy:
+  preprovision:
+  #  windows:
+  #    shell: pwsh
+  #    run: .\scripts\preprovision.ps1
+  #    interactive: true
+  #    continueOnError: false
+    posix:
+      shell: sh
+      run: ./scripts/preprovision.sh
+      interactive: true
+      continueOnError: false
+  postprovision:
+    # windows:
+    #   shell: pwsh
+    #   run: .\scripts\postprovision.ps1
+    #   interactive: true
+    #   continueOnError: false
+    posix:
+      shell: sh
+      run: ./scripts/postprovision.sh
+      interactive: true
+      continueOnError: false
+  predown:
+    # windows:
+    #   shell: pwsh
+    #   run: .\scripts\predown.ps1
+    #   interactive: true
+    #   continueOnError: false
+    posix:
+      shell: sh
+      run: ./scripts/predown.sh
+      interactive: true
+      continueOnError: false
+
+  postdeploy:
       posix:
         shell: sh
         run: ./scripts/load_python_env.sh && ./scripts/postdeploy.sh;

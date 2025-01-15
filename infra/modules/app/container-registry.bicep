@@ -15,8 +15,7 @@ param sku object = {
 }
 param zoneRedundancy string = 'Disabled'
 
-param identityName string
-param backendIdentityName string
+param pullingIdentityNames array = []
 
 // 2022-02-01-preview needed for anonymousPullEnabled
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-02-01-preview' = {
@@ -35,28 +34,29 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-02-01-pr
   }
 }
 
-resource appIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = { name: identityName }
-resource backendIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = { name: backendIdentityName }
+resource identities 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = [for identityName in pullingIdentityNames: {
+  name: identityName
+  location: location
+}]
 
-resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for i in range(0, length(pullingIdentityNames)): {
   scope: containerRegistry
-  name: guid(subscription().id, resourceGroup().id, appIdentity.id, 'acrPullRole')
+  name: guid(subscription().id, resourceGroup().id, identities[i].id, 'acrPullRole')
   properties: {
     roleDefinitionId:  subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
     principalType: 'ServicePrincipal'
-    principalId: appIdentity.properties.principalId
+    principalId: identities[i].properties.principalId
   }
-}
+}]
 
-resource acrPullRoleBackend 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: containerRegistry
-  name: guid(subscription().id, resourceGroup().id, backendIdentity.id, 'acrPullRole')
-  properties: {
-    roleDefinitionId:  subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-    principalType: 'ServicePrincipal'
-    principalId: backendIdentity.properties.principalId
-  }
-}
+
+/* -------------------------------------------------------------------------- */
+/*                                   OUTPUTS                                  */
+/* -------------------------------------------------------------------------- */
+
+@description('The resource ID of the key vault.')
+output resourceId string = containerRegistry.id
 
 output loginServer string = containerRegistry.properties.loginServer
+
 output name string = containerRegistry.name

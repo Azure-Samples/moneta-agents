@@ -1,4 +1,4 @@
-name: "News"
+name: "NewsAgent"
 temperature: 0.3
 included_plugins:
     - "news"

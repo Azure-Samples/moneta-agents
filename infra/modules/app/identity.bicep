@@ -6,7 +6,16 @@ resource appIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-3
   location: location
 }
 
-output identityId string = appIdentity.id
+
+/* -------------------------------------------------------------------------- */
+/*                                   OUTPUTS                                  */
+/* -------------------------------------------------------------------------- */
+
+@description('The resource ID of the key vault.')
+output resourceId string = appIdentity.id
+
 output clientId string = appIdentity.properties.clientId
+
 output principalId string = appIdentity.properties.principalId
+
 output name string = appIdentity.name

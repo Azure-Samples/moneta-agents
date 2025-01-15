@@ -1,4 +1,4 @@
-name: "CRM"
+name: "CRMAgent"
 temperature: 0.1
 included_plugins:
     - "crm"
