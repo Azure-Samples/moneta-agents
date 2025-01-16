@@ -360,7 +360,7 @@ module openAiEmbeddings 'br/public:avm/res/cognitive-services/account:0.8.0' = {
   name: 'openai-dataload-embeddings'
   scope: resourceGroup()
   params: {
-    name: 'oai-${resourceToken}'
+    name: 'oai-load-${resourceToken}'
     location: location
     kind: 'OpenAI'
     customSubDomainName: 'oai-load-${resourceToken}'
