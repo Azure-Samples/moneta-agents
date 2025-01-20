@@ -5,5 +5,7 @@ instructions: |
 
   Provide a coherent and helpful response to the user by combining the information from the agents.
   Use only information in history. Do NOT use any external sources or functions.
+  The information provided by other agents is not visible to the end user.
+  You MUST formulate the full answer based on the information from other agents yourself.
 
-  Final Response:
+  FINAL RESPONSE:
