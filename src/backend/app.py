@@ -99,6 +99,8 @@ async def http_trigger(request_body: dict = Body(...)):
             handler = VanillaAgenticHandler(db)  
         elif handler_type == "semantickernel":  
             handler = SemanticKernelHandler(db)  
+        elif handler_type == "o1":
+            handler = O1Handler(db)
         else:  
             raise HTTPException(status_code=400, detail="Invalid HANDLER_TYPE")  
     
