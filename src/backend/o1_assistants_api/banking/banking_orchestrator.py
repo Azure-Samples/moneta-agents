@@ -109,7 +109,7 @@ POLICY:
                 tools=get_TOOLS(),
                 parallel_tool_calls=False
             )
-            self.logger.info(f" Response from 4o agent:\n {response}")
+            #self.logger.info(f" Response from 4o agent:\n {response}")
             
             assistant_message = response.choices[0].message.model_dump()
             messages.append(assistant_message)
@@ -144,6 +144,21 @@ POLICY:
                     self.logger.error('error', f"Error in {function_name}: {str(e)}")
             
 
+    def summarize(self, input):
+        gpt4o_summary_prompt = """Collect all the information of the latest Action performed paragraph (which is not the 'instructions_complete')
+         but instead, the last action that represent a final answer to the user. 
+         Do not include text that mention things like 'The latest action that represents a final answer to the user is etc', instead
+         provide the content you found as is.
+         INPUT:{input} """.replace("{input}", input)
+        messages = [{'role': 'system', 'content': gpt4o_summary_prompt}]
+ 
+        response = self.client.chat.completions.create(
+            model=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
+            messages=messages
+        )
+        return response.choices[0].message.content
+
+
     async def process_conversation(self, conversation_messages):
         
         #o1 planner agent part
@@ -154,17 +169,27 @@ POLICY:
             'content': o1_response
         }
         self.logger.info( f"o1 plan: {o1_reply}" )
-    
 
         #4o executor part
         ex_response = self.call_gpt4o(o1_response)
+        # Filter assistant messages that have actual content
+        assistants_4o_contents = [
+           msg['content'] for msg in ex_response 
+           if msg.get('role') == 'assistant' and msg.get('content') is not None
+        ]
         ex_reply = {
             'role': 'assistant',
-            'name': '4o Agent',
-            'content': ex_response
+            'name': '4o-mini Agent',
+            'content': assistants_4o_contents[-1]
         }
-        self.logger.info('New reposnse \n')
         self.logger.info( f"4o response: {ex_reply}" )
+
+        summary_4o_response = self.summarize(assistants_4o_contents[-1])
+        summary_reply = {
+            'role': 'assistant',
+            'name': '4o-mini Agent',
+            'content': summary_4o_response
+        }
 
         completion_tokens = 0
         prompt_tokens = 0
@@ -180,6 +205,6 @@ POLICY:
             }
 
         #returning only the 4o message (final response) at the moment the plan and the reasons are not kept
-        return ex_reply, metrics
+        return summary_reply, metrics
 
 
