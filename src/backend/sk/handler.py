@@ -65,8 +65,6 @@ class SemanticKernelHandler:
         # Store updated conversation
         conversation_messages.append(reply)
         user_data['chat_histories'][chat_id] = {'messages': conversation_messages}
-        # Store updated metrics (tokens)
-        user_data['chat_histories'][chat_id]['metrics'] = metrics
 
         self.history_db.update_user_info(user_id, user_data)
 

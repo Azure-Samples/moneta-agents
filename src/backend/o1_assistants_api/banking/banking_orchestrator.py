@@ -36,7 +36,7 @@ class O1BankingOrchestrator:
         O1_PROMPT = """
 You are a private wealth management assistant focusing on investment solutions, portfolio analysis, and CRM-based client data retrieval. The first input you receive will be a query related to private wealth management—this may include requests about CIO research, client information, fund details, or recent news on specific investments.
 
-Your task is to review the request and create a detailed plan to provide the required information and/or analysis.
+Your task is to review the request and create a plan to provide the required information and/or analysis.
 
 You will have access to an LLM agent that is responsible for executing the plan you create and returning the results.
 
@@ -44,9 +44,9 @@ The LLM agent has access to the following functions:
 1. **search_cio(query)**
    - Searches details about CIO insights, recommendations, and in-house views.
 2. **load_from_crm_by_client_fullname(full_name)**
-   - Loads insured client data from the CRM by the client full name.
+   - Loads client and portfolio data from the CRM by the client full name.
 3. **load_from_crm_by_client_id(client_id)**
-   - Loads insured client data from the CRM by the client unique ID.
+   - Loads client and portfolio data from the CRM by the client unique ID.
 4. **search_funds_details(query)**
    - Searches for details about mutual funds or ETFs.
 5. **search_news(position)**
@@ -59,9 +59,8 @@ When creating a plan for the LLM to execute, please follow these formatting guid
    - Each sub-action should start on a new line.
 3. **Use clear conditional logic** when needed (e.g., “If no client data is found, then return an error message...”).
 4. **When calling one of the above functions**, enclose the function name in backticks (e.g., `call the search_news function`) and provide any relevant input parameters explicitly (e.g., “pass the ticker = 'AAPL' as an argument”).
-5. **Only use the functions that are required to fullfill the original input query.**
+5. **Only use the functions that are required to fullfill the original input query,  don't go beyond that, for example if the original query ask about clients data or portolio positions just load that data without calling additional functions for more details unelss it's specified to go further in detail.**
 6. **Always end your plan** by calling the `instructions_complete` function to signal that all instructions have been fulfilled.
-7. **The last step of the plan should always be generating a final answer for the user initial query by calling the `final_answer` function**
 
 Be thorough in your steps and sub-steps, explaining what is being done at each stage and why. Use markdown format when generating the plan to clearly separate numbered actions and sub-actions.
 
@@ -110,33 +109,17 @@ POLICY:
                 tools=get_TOOLS(),
                 parallel_tool_calls=False
             )
-               
+            self.logger.info(f" Response from 4o agent:\n {response}")
+            
             assistant_message = response.choices[0].message.model_dump()
             messages.append(assistant_message)
-            self.logger.debug(f"📟 Response from 4o agent: {assistant_message}")
-
+   
             if not response.choices[0].message.tool_calls:
                 continue
 
             for tool in response.choices[0].message.tool_calls:
                 if tool.function.name == 'instructions_complete':
                     return messages
-
-                if tool.function.name == 'final_answer':
-
-                    gpt4o_answer_prompt = """Provide a response identified by the last following paragraph **Action Execution**: you find in the input to the user.
-                    INPUT: {input} """.replace("{input}", response.choices[0].message.content)
-                    answer_messages = [{'role': 'system', 'content': gpt4o_answer_prompt}]
-                    answer_response = self.client.chat.completions.create(
-                          model=os.getenv("AZURE_OPENAI_DEPLOYMENT"),
-                          messages=answer_messages
-                
-                    )
-                    messages.append({
-                        "role": "assistant",
-                        "content": answer_response.choices[0].message.content
-                    })
-                    continue
 
                 function_name = tool.function.name 
               
