@@ -31,6 +31,9 @@ param applicationInsightsName string = ''
 @description('Application Insights Location')
 param appInsightsLocation string = location
 
+@description('Activate authentication if true. Defaults to false.')
+param withAuthentication bool = false // TODO: not used for now; align with kickstarter
+
 @description('The auth tenant id for the frontend and backend app (leave blank in AZD to use your current tenant)')
 param authTenantId string = '' // Make sure authTenantId is set if not using AZD
 

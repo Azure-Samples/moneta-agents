@@ -8,6 +8,9 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
+    "withAuthentication": {
+      "value": "${WITH_AUTHENTICATION=true}"
+    },
     "authTenantId": {
       "value": "${AZURE_AUTH_TENANT_ID}"
     },
