@@ -22,7 +22,7 @@ class FundsFacade:
         text_vector_query = VectorizableTextQuery(
             kind="text",
             text=query,
-            fields="text_vector"
+            fields=os.getenv('AI_SEARCH_VECTOR_FIELD_NAME',"contentVector")
         )
 
         results = self.search_client.search(
@@ -42,7 +42,7 @@ class FundsFacade:
         for result in response:
             result.pop("parent_id")
             result.pop("chunk_id")
-            result.pop("text_vector")
+            result.pop(os.getenv('AI_SEARCH_VECTOR_FIELD_NAME',"contentVector"))
             output.append(result)
 
         return json.dumps(output)

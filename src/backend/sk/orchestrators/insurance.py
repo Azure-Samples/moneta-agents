@@ -29,7 +29,7 @@ class InsuranceOrchestrator(SemanticOrchastrator):
             credential=DefaultAzureCredential(),
             service_endpoint = os.getenv('AI_SEARCH_ENDPOINT'),
             index_name = os.getenv('AI_SEARCH_INS_INDEX_NAME'),
-            semantic_configuration_name = 'default')
+            semantic_configuration_name = os.getenv('AI_SEARCH_INS_SEMANTIC_CONFIGURATION'))
 
         self.kernel = Kernel(
             services=[self.gpt4o_service],

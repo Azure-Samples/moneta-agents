@@ -11,6 +11,7 @@ from opentelemetry.trace import get_tracer
 from conversation_store import ConversationStore  
 from gbb.handler import VanillaAgenticHandler  
 from sk.handler import SemanticKernelHandler  
+from o1_assistants_api.handler import O1Handler
   
 import util
 

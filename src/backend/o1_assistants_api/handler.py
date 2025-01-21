@@ -1,18 +1,18 @@
 import logging
 import json
 
-from sk.orchestrators.insurance import InsuranceOrchestrator
-from sk.orchestrators.banking import BankingOrchestrator
+from o1_assistants_api.banking.banking_orchestrator import O1BankingOrchestrator
+import o1_assistants_api.banking.banking_tools
 
-class SemanticKernelHandler:
+class O1Handler:
     def __init__(self, history_db):
         self.logger = logging.getLogger(__name__)
-        self.logger.debug("Semantic Kernel Handler init")
+        self.logger.debug("o1 Handler init")
 
         self.history_db = history_db
         self.orchestrators = {}
-        self.orchestrators['fsi_insurance'] = InsuranceOrchestrator()
-        self.orchestrators['fsi_banking'] = BankingOrchestrator()
+        self.orchestrators['fsi_insurance'] = None #not implmented yet
+        self.orchestrators['fsi_banking'] = O1BankingOrchestrator()
 
     def load_history(self, user_id):
         user_data = self.history_db.read_user_info(user_id)
@@ -60,7 +60,7 @@ class SemanticKernelHandler:
             return {"status_code": 400, "error": "Use case not recognized"}
         
         orchestrator = self.orchestrators[usecase_type]
-        reply = await orchestrator.process_conversation(user_id, conversation_messages)
+        reply, metrics = await orchestrator.process_conversation(conversation_messages)
 
         # Store updated conversation
         conversation_messages.append(reply)
@@ -71,3 +71,5 @@ class SemanticKernelHandler:
         self.history_db.update_user_info(user_id, user_data)
 
         return {"status_code": 200, "chat_id": chat_id, "reply": [reply]}
+
+
