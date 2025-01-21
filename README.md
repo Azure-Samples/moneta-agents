@@ -85,37 +85,24 @@ Note: GBB Vanilla agents are similar but differs a bit (no responder agent)
 
 To configure, follow these steps:
 
-1. Make sure you AZ CLI is logged in in the right tenant. Optionally:
+1. Make sure you AZ CLI and AZD are logged in in the right tenant. Optionally:
 
-    ```shell
-    az login --tenant your_tenant.onmicrosoft.com
-    ```
+```shell
+az login --tenant your_tenant.onmicrosoft.com
+azd auth login --tenant-id your_tenant.onmicrosoft.com
+```
 
-1. Create a new azd environment:
+1. (Optional) If you want to enable authentication (you need the right to create App Registrations in your Azure Entra ID to do so)
 
-    ```shell
-    azd env new
-    ```
-
-    This will create a folder under `.azure/` in your project to store the configuration for this deployment. You may have multiple azd environments if desired.
-
-1. Set the `AZURE_AUTH_TENANT_ID` azd environment variable to the tenant ID you want to use for Entra authentication:
-
-    ```shell
-    azd env set AZURE_AUTH_TENANT_ID $(az account show --query tenantId -o tsv)
-    ```
-
-1. Login to the azd CLI with the Entra tenant ID:
-
-    ```shell
-    azd auth login --tenant-id $(azd env get-value AZURE_AUTH_TENANT_ID)
-    ```
+```shell
+azd env set WITH_AUTHENTICATION true
+```
 
 1. Proceed with AZD deployment:
 
-    ```shell
-    azd up
-    ```
+```shell
+azd up
+```
 
 ### Data indexing 
 
