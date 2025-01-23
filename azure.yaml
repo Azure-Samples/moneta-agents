@@ -17,33 +17,33 @@ services:
       remoteBuild: true
 hooks:
   preprovision:
-  #  windows:
-  #    shell: pwsh
-  #    run: .\scripts\preprovision.ps1
-  #    interactive: true
-  #    continueOnError: false
+    windows:
+      shell: pwsh
+      run: .\scripts\preprovision.ps1
+      interactive: true
+      continueOnError: false
     posix:
       shell: sh
       run: ./scripts/preprovision.sh
       interactive: true
       continueOnError: false
   postprovision:
-    # windows:
-    #   shell: pwsh
-    #   run: .\scripts\postprovision.ps1
-    #   interactive: true
-    #   continueOnError: false
+    windows:
+      shell: pwsh
+      run: .\scripts\postprovision.ps1
+      interactive: true
+      continueOnError: false
     posix:
       shell: sh
       run: ./scripts/postprovision.sh
       interactive: true
       continueOnError: false
   predown:
-    # windows:
-    #   shell: pwsh
-    #   run: .\scripts\predown.ps1
-    #   interactive: true
-    #   continueOnError: false
+    windows:
+      shell: pwsh
+      run: .\scripts\predown.ps1
+      interactive: true
+      continueOnError: false
     posix:
       shell: sh
       run: ./scripts/predown.sh
