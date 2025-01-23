@@ -760,7 +760,7 @@ requires-dist = [
     { name = "azure-ai-inference", extras = ["opentelemetry"], specifier = ">=1.0.0b7" },
     { name = "azure-cosmos", specifier = ">=4.9.0" },
     { name = "azure-identity", specifier = ">=1.19.0" },
-    { name = "azure-monitor-opentelemetry-exporter", specifier = ">=1.0.0b32" },
+    { name = "azure-monitor-opentelemetry-exporter", specifier = ">=1.0.0b33" },
     { name = "azure-search-documents", specifier = ">=11.5.2" },
     { name = "fastapi", specifier = ">=0.115.6" },
     { name = "grpcio-tools", specifier = ">=1.68.1" },
@@ -772,7 +772,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "requests-html", specifier = ">=0.10.0" },
-    { name = "semantic-kernel", specifier = ">=1.18.2" },
+    { name = "semantic-kernel", specifier = ">=1.19.0" },
     { name = "uvicorn", specifier = ">=0.32.1" },
 ]
 
@@ -1494,7 +1494,7 @@ wheels = [
 
 [[package]]
 name = "semantic-kernel"
-version = "1.18.2"
+version = "1.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1513,9 +1513,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0f/f2/60aeb308ecbf12680fa5a362c57ffe912e27bb7565a368bc0824fac991ff/semantic_kernel-1.18.2.tar.gz", hash = "sha256:0c161e3e4585daa20ba477caf678a5ba062584e8f8b682220b8846f2e36e1d23", size = 379011 }
+sdist = { url = "https://files.pythonhosted.org/packages/0c/4b/eac37457de52a32972fe79cefe7e1752e6ebbd6d654bb79d50b0bb8afbe5/semantic_kernel-1.19.0.tar.gz", hash = "sha256:d808690c00c23a00fc2a3f473587e96208a8d841e73cf34ca2e9a362bb37eebc", size = 381200 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/dc/40a0f119d7da9093fc088976f771a3dc6cb32cdc4c67887f06f7cb91a4ea/semantic_kernel-1.18.2-py3-none-any.whl", hash = "sha256:8cb21b102d8048371fcdb848cd3744179f18c9a29aa7da638f87c7b9f75ba3d3", size = 659393 },
+    { url = "https://files.pythonhosted.org/packages/67/e7/482d947222746b715b1f89f58615b87f72734e6eebe7235f82b31cdd345e/semantic_kernel-1.19.0-py3-none-any.whl", hash = "sha256:acb83ebcf9d4d4d226897a6ba6122951f9c057235b6931bc93e47bfc582fd77b", size = 662250 },
 ]
 
 [[package]]
