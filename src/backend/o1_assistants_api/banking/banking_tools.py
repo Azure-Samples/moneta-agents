@@ -41,7 +41,7 @@ def search_cio(query: str) -> str:
         text_vector_query = VectorizableTextQuery(
             kind="text",
             text=query,
-            fields=os.getenv('AI_SEARCH_VECTOR_FIELD_NAME', "contentVector")
+            fields=os.getenv('AI_SEARCH_VECTOR_FIELD_NAME', "text-vector")
         )
 
         # Execute semantic (vector) search
@@ -63,7 +63,7 @@ def search_cio(query: str) -> str:
             # Remove fields not needed in the output
             result.pop("parent_id", None)
             result.pop("chunk_id", None)
-            result.pop(os.getenv('AI_SEARCH_VECTOR_FIELD_NAME', "contentVector"), None)
+            result.pop(os.getenv('AI_SEARCH_VECTOR_FIELD_NAME', "text-vector"), None)
             output.append(result)
 
         return json.dumps(output)
@@ -155,7 +155,7 @@ def search_funds_details(query: str) -> str:
         text_vector_query = VectorizableTextQuery(
             kind="text",
             text=query,
-            fields=os.getenv('AI_SEARCH_VECTOR_FIELD_NAME', "contentVector")
+            fields=os.getenv('AI_SEARCH_VECTOR_FIELD_NAME', "text-vector")
         )
 
         results = search_client.search(
@@ -175,7 +175,7 @@ def search_funds_details(query: str) -> str:
             # Remove fields not needed in the output
             result.pop("parent_id", None)
             result.pop("chunk_id", None)
-            result.pop(os.getenv('AI_SEARCH_VECTOR_FIELD_NAME', "contentVector"), None)
+            result.pop(os.getenv('AI_SEARCH_VECTOR_FIELD_NAME', "text-vector"), None)
             output.append(result)
 
         return json.dumps(output)

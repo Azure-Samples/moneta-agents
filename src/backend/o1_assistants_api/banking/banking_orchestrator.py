@@ -165,7 +165,7 @@ POLICY:
         o1_response = self.call_o1(conversation_messages)
         o1_reply = {
             'role': 'assistant',
-            'name': 'o1 Planner',
+            'name': 'o1-mini Planner',
             'content': o1_response
         }
         self.logger.info( f"o1 plan: {o1_reply}" )
