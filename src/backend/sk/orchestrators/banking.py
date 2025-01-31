@@ -2,6 +2,7 @@ import logging
 import os
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from semantic_kernel.agents import AgentGroupChat
+from semantic_kernel.agents import ChatCompletionAgent
 from semantic_kernel.agents.strategies.termination.termination_strategy import TerminationStrategy
 from semantic_kernel.agents.strategies import KernelFunctionSelectionStrategy
 from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import AzureChatCompletion
@@ -19,41 +20,45 @@ from semantic_kernel.connectors.ai.azure_ai_inference import AzureAIInferenceCha
 import azure.ai.inference.aio as aio_inference
 import azure.identity.aio as aio_identity
 
+from azure.ai.projects import AIProjectClient
+from sk.aifoundry.agent_initialiazer import AgentInitializer
+
 class BankingOrchestrator(SemanticOrchastrator):
     def __init__(self):
         super().__init__()
+        self.logger.setLevel(logging.DEBUG)
         self.logger = logging.getLogger(__name__)
         self.logger.debug("Banking Orchestrator init")
         
         # Initialize required services and kernel
-        self.crm = CRMFacade(
-            key=DefaultAzureCredential(),
-            cosmosdb_endpoint=os.getenv("COSMOSDB_ENDPOINT"),
-            crm_database_name=os.getenv("COSMOSDB_DATABASE_NAME"),
-            crm_container_name=os.getenv("COSMOSDB_CONTAINER_CLIENT_NAME"))
+        # self.crm = CRMFacade(
+        #     key=DefaultAzureCredential(),
+        #     cosmosdb_endpoint=os.getenv("COSMOSDB_ENDPOINT"),
+        #     crm_database_name=os.getenv("COSMOSDB_DATABASE_NAME"),
+        #     crm_container_name=os.getenv("COSMOSDB_CONTAINER_CLIENT_NAME"))
 
-        self.product = FundsFacade(
-            credential=DefaultAzureCredential(),
-            service_endpoint=os.getenv('AI_SEARCH_ENDPOINT'),
-            index_name=os.getenv('AI_SEARCH_FUNDS_INDEX_NAME'),
-            semantic_configuration_name="default")
+        # self.product = FundsFacade(
+        #     credential=DefaultAzureCredential(),
+        #     service_endpoint=os.getenv('AI_SEARCH_ENDPOINT'),
+        #     index_name=os.getenv('AI_SEARCH_FUNDS_INDEX_NAME'),
+        #     semantic_configuration_name="default")
 
-        self.cio = CIOFacade(
-            credential=DefaultAzureCredential(),
-            service_endpoint=os.getenv('AI_SEARCH_ENDPOINT'),
-            index_name=os.getenv('AI_SEARCH_CIO_INDEX_NAME'),
-            semantic_configuration_name="default")
+        # self.cio = CIOFacade(
+        #     credential=DefaultAzureCredential(),
+        #     service_endpoint=os.getenv('AI_SEARCH_ENDPOINT'),
+        #     index_name=os.getenv('AI_SEARCH_CIO_INDEX_NAME'),
+        #     semantic_configuration_name="default")
         
-        self.news = NewsFacade()
+        # self.news = NewsFacade()
         
         self.kernel = Kernel(
             services=[self.gpt4o_service],
-            plugins=[
-                KernelPlugin.from_object(plugin_instance=self.crm, plugin_name="crm"),
-                KernelPlugin.from_object(plugin_instance=self.product, plugin_name="funds"),
-                KernelPlugin.from_object(plugin_instance=self.cio, plugin_name="cio"),
-                KernelPlugin.from_object(plugin_instance=self.news, plugin_name="news"),
-            ]
+            # plugins=[
+            #     KernelPlugin.from_object(plugin_instance=self.crm, plugin_name="crm"),
+            #     KernelPlugin.from_object(plugin_instance=self.product, plugin_name="funds"),
+            #     KernelPlugin.from_object(plugin_instance=self.cio, plugin_name="cio"),
+            #     KernelPlugin.from_object(plugin_instance=self.news, plugin_name="news"),
+            # ]
         )
 
     # --------------------------------------------
@@ -119,37 +124,106 @@ class BankingOrchestrator(SemanticOrchastrator):
                                              maximum_iterations=maximum_iterations)
 
     # --------------------------------------------
-    # Create Agent Group Chat
+    # Create Agent Group Chat - LEGACY:without AI Foundry
     # --------------------------------------------
+    # def create_agent_group_chat(self):
+    #     self.logger.debug("Creating chat")
+
+    #     crm_agent = self.create_agent(service_id="gpt-4o",
+    #                                   kernel=self.kernel,
+    #                                   definition_file_path="sk/agents/banking/crm.yaml")
+    #     funds_agent = self.create_agent(service_id="gpt-4o",
+    #                                   kernel=self.kernel,
+    #                                   definition_file_path="sk/agents/banking/funds.yaml")
+    #     cio_agent = self.create_agent(service_id="gpt-4o",
+    #                                   kernel=self.kernel,
+    #                                   definition_file_path="sk/agents/banking/cio.yaml")
+    #     news_agent = self.create_agent(service_id="gpt-4o",
+    #                                   kernel=self.kernel,
+    #                                   definition_file_path="sk/agents/banking/news.yaml")
+    #     responder_agent = self.create_agent(service_id="gpt-4o",
+    #                                   kernel=self.kernel,
+    #                                   definition_file_path="sk/agents/banking/responder.yaml")
+
+    #     agents = [crm_agent, funds_agent, cio_agent, news_agent, responder_agent]
+
+    #     agent_group_chat = AgentGroupChat(
+    #         agents=agents,
+    #         selection_strategy=self.create_selection_strategy(agents, responder_agent),
+    #         termination_strategy=self.create_termination_strategy(
+    #             agents=[funds_agent, crm_agent, responder_agent],
+    #             final_agent=responder_agent,
+    #             maximum_iterations=8
+    #         )
+    #     )
+
+    #     return agent_group_chat
+    
+
     def create_agent_group_chat(self):
         self.logger.debug("Creating chat")
 
-        crm_agent = self.create_agent(service_id="gpt-4o",
-                                      kernel=self.kernel,
-                                      definition_file_path="sk/agents/banking/crm.yaml")
-        funds_agent = self.create_agent(service_id="gpt-4o",
-                                      kernel=self.kernel,
-                                      definition_file_path="sk/agents/banking/funds.yaml")
-        cio_agent = self.create_agent(service_id="gpt-4o",
-                                      kernel=self.kernel,
-                                      definition_file_path="sk/agents/banking/cio.yaml")
-        news_agent = self.create_agent(service_id="gpt-4o",
-                                      kernel=self.kernel,
-                                      definition_file_path="sk/agents/banking/news.yaml")
-        responder_agent = self.create_agent(service_id="gpt-4o",
-                                      kernel=self.kernel,
-                                      definition_file_path="sk/agents/banking/responder.yaml")
+        # 1) Create an AgentInitializer from the AI Foundry SDK
+        # We assume you already have or can build an AIProjectClient:
+
+        self.logger.info("Getting Foundry project")
+        foundry_client = AIProjectClient.from_connection_string(
+            credential=DefaultAzureCredential(),
+            conn_str=os.environ["AI_PROJECT_CONNECTION_STRING"],
+            logging_enable = True
+        )
+        self.logger.info(f"Foundry project = {foundry_client}")
+        agent_initializer = AgentInitializer(foundry_client)
+
+        # 2) For each agent type, create the SK ChatCompletionAgent from Foundry
+        crm_agent = self.create_agent_from_foundry(
+            kernel=self.kernel, 
+            service_id="gpt-4o", 
+            agent_initializer=agent_initializer, 
+            agent_type="crm"
+        )
+        funds_agent = self.create_agent_from_foundry(
+            kernel=self.kernel, 
+            service_id="gpt-4o", 
+            agent_initializer=agent_initializer, 
+            agent_type="funds"
+        )
+        cio_agent = self.create_agent_from_foundry(
+            kernel=self.kernel, 
+            service_id="gpt-4o", 
+            agent_initializer=agent_initializer, 
+            agent_type="cio"
+        )
+        news_agent = self.create_agent_from_foundry(
+            kernel=self.kernel, 
+            service_id="gpt-4o", 
+            agent_initializer=agent_initializer, 
+            agent_type="news"
+        )
+        responder_agent = self.create_agent_from_foundry(
+            kernel=self.kernel, 
+            service_id="gpt-4o", 
+            agent_initializer=agent_initializer, 
+            agent_type="responder"
+        )
 
         agents = [crm_agent, funds_agent, cio_agent, news_agent, responder_agent]
 
+        # 3) Build the selection strategy as you do now
+        selection_strategy = self.create_selection_strategy(agents, responder_agent)
+
+        # 4) Build the termination strategy
+        termination_strategy = self.create_termination_strategy(
+            agents=[funds_agent, crm_agent, responder_agent],
+            final_agent=responder_agent,
+            maximum_iterations=8
+        )
+
+        # 5) Create the AgentGroupChat
         agent_group_chat = AgentGroupChat(
             agents=agents,
-            selection_strategy=self.create_selection_strategy(agents, responder_agent),
-            termination_strategy=self.create_termination_strategy(
-                agents=[funds_agent, crm_agent, responder_agent],
-                final_agent=responder_agent,
-                maximum_iterations=8
-            )
+            selection_strategy=selection_strategy,
+            termination_strategy=termination_strategy
         )
 
         return agent_group_chat

@@ -2,7 +2,7 @@ import json
 import os
 import logging
 
-from typing import Annotated
+from typing import Annotated, Any, Callable, Set, Dict, List, Optional
 from semantic_kernel.functions import kernel_function
 
 from crm_store import CRMStore
@@ -37,3 +37,8 @@ class CRMFacade:
         response = self.crm_db.get_customer_profile_by_client_id(client_id)
         return json.dumps(response) if response else None
         
+    #Statically defined user functions for fast reference
+    crm_functions: Set[Callable[..., Any]] = {
+        get_customer_profile_by_full_name,
+        get_customer_profile_by_client_id,
+    }

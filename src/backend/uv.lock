@@ -115,6 +115,20 @@ opentelemetry = [
 ]
 
 [[package]]
+name = "azure-ai-projects"
+version = "1.0.0b5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-core" },
+    { name = "isodate" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/98/0f/47600c1c3bb1b92913350c9878c517ccbd2630f4c5393cd4054dc71d5fbd/azure_ai_projects-1.0.0b5.tar.gz", hash = "sha256:7bb068b38a8810c5a59a628e18f196c76af2a06cb774e725b97bfc8b61b3aaf0", size = 303846 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2f/3b/5ef0717685e4d3e3b537d7538e430199ab4c16665766ab3de90d5fedc8ef/azure_ai_projects-1.0.0b5-py3-none-any.whl", hash = "sha256:7ed7a44e8d76bf108be7de6f33b9c54a63fc47193cd259770006a6862ce25ccd", size = 193481 },
+]
+
+[[package]]
 name = "azure-common"
 version = "1.1.28"
 source = { registry = "https://pypi.org/simple" }
@@ -302,7 +316,7 @@ name = "click"
 version = "8.1.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "platform_system == 'Windows'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b9/2e/0090cbf739cee7d23781ad4b89a9894a41538e4fcf4c31dcdd705b78eb8b/click-8.1.8.tar.gz", hash = "sha256:ed53c9d8990d83c2a27deae68e4ee337473f6330c040a31d4225c9574d16096a", size = 226593 }
 wheels = [
@@ -737,6 +751,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "azure-ai-inference", extra = ["opentelemetry"] },
+    { name = "azure-ai-projects" },
     { name = "azure-cosmos" },
     { name = "azure-identity" },
     { name = "azure-monitor-opentelemetry-exporter" },
@@ -758,6 +773,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "azure-ai-inference", extras = ["opentelemetry"], specifier = ">=1.0.0b7" },
+    { name = "azure-ai-projects", specifier = "==1.0.0b5" },
     { name = "azure-cosmos", specifier = ">=4.9.0" },
     { name = "azure-identity", specifier = ">=1.19.0" },
     { name = "azure-monitor-opentelemetry-exporter", specifier = ">=1.0.0b33" },
@@ -1105,7 +1121,7 @@ name = "portalocker"
 version = "2.10.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pywin32", marker = "sys_platform == 'win32'" },
+    { name = "pywin32", marker = "platform_system == 'Windows'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ed/d3/c6c64067759e87af98cc668c1cc75171347d0f1577fab7ca3749134e3cd4/portalocker-2.10.1.tar.gz", hash = "sha256:ef1bf844e878ab08aee7e40184156e1151f228f103aa5c6bd0724cc330960f8f", size = 40891 }
 wheels = [
@@ -1571,7 +1587,7 @@ name = "tqdm"
 version = "4.67.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "platform_system == 'Windows'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737 }
 wheels = [

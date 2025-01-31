@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 import json
 import os
 import logging
-from typing import List, Annotated, Optional
+from typing import Annotated, Any, Callable, Set, Dict, List, Optional
 import requests
 import pandas as pd
 from requests_html import HTMLSession
@@ -88,3 +88,7 @@ class NewsFacade:
             logging.error(f"An unexpected error occurred in the 'search_news' function of the 'news_agent': {e}") 
             return 
 
+    #Statically defined user functions for fast reference
+    news_functions: Set[Callable[..., Any]] = {
+        fetch_news,
+    }
