@@ -87,7 +87,7 @@ class AgentInitializer:
             temperature=agent_definition["temperature"],
             toolset=toolset,
         )
-        self.logger.debug(f"Created agent, ID: {agent.id}")
+        self.logger.info(f"Created agent, ID: {agent.id}")
         return agent    
         
     def create_agent_funds(self, agent_definition: dict):
