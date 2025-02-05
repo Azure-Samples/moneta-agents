@@ -49,13 +49,12 @@ class SemanticOrchastrator:
     
     async def process_conversation(self, user_id, conversation_messages):
         agent_group_chat = self.create_agent_group_chat()
-        # Load chat history - allow only assistant and user messages
         chat_history = [
             ChatMessageContent(
                 role=AuthorRole(d.get('role')),
                 name=d.get('name'),
                 content=d.get('content')
-            ) for d in filter(lambda m: m['role'] in ("assistant", "user"), conversation_messages)
+            ) for d in filter(lambda m: m['role'] in ("system", "developer", "assistant", "user"), conversation_messages)
         ]
 
         await agent_group_chat.add_chat_messages(chat_history)

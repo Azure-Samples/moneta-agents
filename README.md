@@ -151,7 +151,7 @@ Activate the `.venv` virtual environment or run the binary directly:
 ```shell
 cd src/backend
 uv sync
-./.venv/bin/python app.py
+./.venv/bin/uvicorn app:app 
 ```
 
 ### Running the App locally - FRONTEND

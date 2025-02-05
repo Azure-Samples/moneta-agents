@@ -291,15 +291,15 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.15.0' = {
 param embedModel string = 'text-embedding-3-large'
 var deployments = [
      {
-        name: 'gpt-4o-2024-08-06'
+        name: 'gpt-4o-2024-11-20'
         sku: {
           name: 'GlobalStandard'
-          capacity: 50
+          capacity: 40
         }
         model: {
           format: 'OpenAI'
           name: 'gpt-4o'
-          version: '2024-08-06'
+          version: '2024-11-20'
         }
         versionUpgradeOption: 'OnceCurrentVersionExpired'
       }

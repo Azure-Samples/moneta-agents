@@ -2,7 +2,6 @@
 INS_PREDEFINED_QUESTIONS = [
     "Provide information about my client John Doe",
     "Can he travel to Bali with his current coverage?",
-    "Which phone number a client should use to report a claim while abroad?",
     "Do we cover COVID-19 treatements in Indonesia?"
 ]
 

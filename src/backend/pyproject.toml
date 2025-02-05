@@ -5,10 +5,10 @@ description = "Backend propject steup for Moneta"
 readme = "README.md"
 requires-python = ">=3.12, <3.13"
 dependencies = [
-    "semantic-kernel>=1.18.2",
+    "semantic-kernel>=1.19.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.29.0",
     "opentelemetry-instrumentation>=0.50b0",
-    "azure-monitor-opentelemetry-exporter>=1.0.0b32",
+    "azure-monitor-opentelemetry-exporter>=1.0.0b33",
     "azure-identity>=1.19.0",
     "azure-ai-inference[opentelemetry]>=1.0.0b7",
     "azure-cosmos>=4.9.0",
