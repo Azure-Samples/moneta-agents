@@ -18,7 +18,6 @@ import azure.identity.aio as aio_identity
 
 from sk.aifoundry.agent_initialiazer import AgentInitializer
 
-from sk.orchestrators.temp_agent import CustomAgentBase
 import util
 
 util.load_dotenv_from_azd()
