@@ -1,8 +1,8 @@
 from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import AzureAISearchTool, FunctionTool, ToolSet
 from azure.core.exceptions import HttpResponseError
-from sk.skills.crm_facade import CRMFacade
-from sk.skills.news_facade import NewsFacade
+from sk.skills.crm_facade import crm_functions
+from sk.skills.news_facade import news_functions
 import yaml
 from dotenv import load_dotenv
 import os
@@ -73,7 +73,7 @@ class AgentInitializer:
     def create_agent_crm(self, agent_definition: dict):
         self.logger.info("AI Foundry create_agent_crm init")
         # Initialize function tool
-        functions = FunctionTool(functions=CRMFacade.crm_functions)
+        functions = FunctionTool(functions=crm_functions)
         toolset = ToolSet()
         toolset.add(functions)
         
@@ -119,7 +119,7 @@ class AgentInitializer:
     def create_agent_news(self, agent_definition: dict):
         self.logger.info("AI Foundry create_agent_news init")
         # Initialize function tool
-        functions = FunctionTool(functions=NewsFacade.news_functions)
+        functions = FunctionTool(functions=news_functions)
         toolset = ToolSet()
         toolset.add(functions)
         

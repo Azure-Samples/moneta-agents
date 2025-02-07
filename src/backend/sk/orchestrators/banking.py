@@ -10,16 +10,13 @@ from semantic_kernel.connectors.ai.open_ai import AzureChatPromptExecutionSettin
 from semantic_kernel.kernel import Kernel
 from semantic_kernel.functions import KernelPlugin, KernelFunctionFromPrompt
 
-from sk.skills.crm_facade import CRMFacade
-from sk.skills.funds_facade import FundsFacade
-from sk.skills.cio_facade import CIOFacade
-from sk.skills.news_facade import NewsFacade
 from sk.orchestrators.semantic_orchestrator import SemanticOrchastrator
 
 from semantic_kernel.connectors.ai.azure_ai_inference import AzureAIInferenceChatCompletion
 import azure.ai.inference.aio as aio_inference
 import azure.identity.aio as aio_identity
 
+import asyncio
 from azure.ai.projects import AIProjectClient
 from sk.aifoundry.agent_initialiazer import AgentInitializer
 
@@ -160,7 +157,7 @@ class BankingOrchestrator(SemanticOrchastrator):
     #     return agent_group_chat
     
 
-    def create_agent_group_chat(self):
+    async def create_agent_group_chat(self):
         self.logger.debug("Creating chat")
 
         # 1) Create an AgentInitializer from the AI Foundry SDK
@@ -168,43 +165,57 @@ class BankingOrchestrator(SemanticOrchastrator):
 
         self.logger.info("Getting Foundry project")
         foundry_client = AIProjectClient.from_connection_string(
-            credential=DefaultAzureCredential(),
+            credential = DefaultAzureCredential(),
             conn_str=os.environ["AI_PROJECT_CONNECTION_STRING"],
             logging_enable = True
         )
         self.logger.info(f"Foundry project = {foundry_client}")
         agent_initializer = AgentInitializer(foundry_client)
 
+        # List all agents from Project
+        agents_list = foundry_client.agents.list_agents()
+
+        # Check if agent already exists
+        for agent in agents_list.data:
+            foundry_client.agents.delete_agent(agent.id)
+
+        self.logger.debug("All agents deleted")
+
         # 2) For each agent type, create the SK ChatCompletionAgent from Foundry
-        crm_agent = self.create_agent_from_foundry(
+        crm_agent = await self.create_agent_from_foundry(
             kernel=self.kernel, 
             service_id="gpt-4o", 
             agent_initializer=agent_initializer, 
-            agent_type="crm"
+            agent_type="crm",
+            foundry_client=foundry_client
         )
-        funds_agent = self.create_agent_from_foundry(
+        funds_agent = await self.create_agent_from_foundry(
             kernel=self.kernel, 
             service_id="gpt-4o", 
             agent_initializer=agent_initializer, 
-            agent_type="funds"
+            agent_type="funds",
+            foundry_client=foundry_client
         )
-        cio_agent = self.create_agent_from_foundry(
+        cio_agent = await self.create_agent_from_foundry(
             kernel=self.kernel, 
             service_id="gpt-4o", 
             agent_initializer=agent_initializer, 
-            agent_type="cio"
+            agent_type="cio",
+            foundry_client=foundry_client
         )
-        news_agent = self.create_agent_from_foundry(
+        news_agent = await self.create_agent_from_foundry(
             kernel=self.kernel, 
             service_id="gpt-4o", 
             agent_initializer=agent_initializer, 
-            agent_type="news"
+            agent_type="news",
+            foundry_client=foundry_client
         )
-        responder_agent = self.create_agent_from_foundry(
+        responder_agent = await self.create_agent_from_foundry(
             kernel=self.kernel, 
             service_id="gpt-4o", 
             agent_initializer=agent_initializer, 
-            agent_type="responder"
+            agent_type="responder",
+            foundry_client=foundry_client
         )
 
         agents = [crm_agent, funds_agent, cio_agent, news_agent, responder_agent]

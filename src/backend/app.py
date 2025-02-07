@@ -10,11 +10,14 @@ from opentelemetry.trace import get_tracer
 
 from conversation_store import ConversationStore  
 from gbb.handler import VanillaAgenticHandler  
-from sk.handler import SemanticKernelHandler  
+from sk.handler import SemanticKernelHandler
   
 import util
 
-util.load_dotenv_from_azd()
+from dotenv import load_dotenv
+load_dotenv()
+
+#util.load_dotenv_from_azd()
 
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.INFO)
@@ -34,11 +37,14 @@ logging.getLogger('azure.monitor.opentelemetry.exporter.export').setLevel(loggin
 
 app = FastAPI()
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 @app.post("/http_trigger")
 async def http_trigger(request_body: dict = Body(...)):
     logging.info('Empowering RMs - HTTP trigger function processed a request.')
         
-
     # Extract parameters from the request body  
     user_id = request_body.get('user_id')
     chat_id = request_body.get('chat_id')  # None if starting a new chat
@@ -63,9 +69,14 @@ async def http_trigger(request_body: dict = Body(...)):
     session_id = f"{user_id}-{current_time}"
    
     with tracer.start_as_current_span(session_id):
-        # Authenticate using DefaultAzureCredential  
-        key = DefaultAzureCredential()
-    
+        # Authenticate using DefaultAzureCredential
+        try:
+            key = DefaultAzureCredential()
+            logging.info("Successfully authenticated using DefaultAzureCredential")
+        except Exception as e:
+            logging.error(f"Authentication failed: {e}")
+            raise HTTPException(status_code=500, detail="Authentication failed")
+
         # Select use case container based on usecase_type  
         if usecase_type == 'fsi_insurance':  
             container_name = os.getenv("COSMOSDB_CONTAINER_FSI_INS_USER_NAME")  
@@ -73,22 +84,36 @@ async def http_trigger(request_body: dict = Body(...)):
             container_name = os.getenv("COSMOSDB_CONTAINER_FSI_BANK_USER_NAME")  
         else:  
             raise HTTPException(status_code=400, detail="Use case not recognized/not implemented...")  
+        logging.info(f"Using container: {container_name}")
     
         # Initialize the ConversationStore with Cosmos DB configurations  
         # TODO: 1. This part needs t be moved to handler
-        db = ConversationStore(  
-            url=os.getenv("COSMOSDB_ENDPOINT"),  
-            key=key,  
-            database_name=os.getenv("COSMOSDB_DATABASE_NAME"),  
-            container_name=container_name  
-        )  
+        try:
+            db = ConversationStore(  
+                url=os.getenv("COSMOSDB_ENDPOINT"),  
+                key=key,  
+                database_name=os.getenv("COSMOSDB_DATABASE_NAME"),  
+                container_name=container_name  
+            )
+            logging.info("Successfully initialized ConversationStore")
+        except Exception as e:
+            logging.error(f"Failed to initialize ConversationStore: {e}")
+            raise HTTPException(status_code=500, detail="Failed to initialize ConversationStore")
     
         # Check if user exists, if not create a new user  
-        if not db.read_user_info(user_id):  
-            user_data = {'chat_histories': {}}  
-            db.create_user(user_id, user_data)  
-    
-        user_data = db.read_user_info(user_id)  
+        try:
+            if not db.read_user_info(user_id):  
+                user_data = {'chat_histories': {}}  
+                db.create_user(user_id, user_data)
+                logging.info(f"Created new user: {user_id}")
+            else:
+                logging.info(f"User {user_id} already exists")
+        except Exception as e:
+            logging.error(f"Failed to read or create user: {e}")
+            raise HTTPException(status_code=500, detail="Failed to read or create user")
+        
+        user_data = db.read_user_info(user_id)
+        logging.info(f"User data: {user_data}")
         # //: 1
 
         # Decide which handler to use based on the HANDLER_TYPE environment variable  
@@ -138,4 +163,8 @@ async def http_trigger(request_body: dict = Body(...)):
         return JSONResponse(  
             content={"chat_id": chat_id, "reply": new_messages},  
             status_code=200  
-    )  
+        )  
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
