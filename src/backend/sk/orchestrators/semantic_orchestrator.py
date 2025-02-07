@@ -15,12 +15,18 @@ from opentelemetry.trace import get_tracer
 from semantic_kernel.connectors.ai.azure_ai_inference import AzureAIInferenceChatCompletion
 import azure.ai.inference.aio as aio_inference
 import azure.identity.aio as aio_identity
+from azure.core.credentials import AzureKeyCredential
 
+from azure.ai.projects import AIProjectClient
 from sk.aifoundry.agent_initialiazer import AgentInitializer
+from sk.aifoundry.azure_ai_agent_service import AzureAssistantAgent
 
 import util
+from dotenv import load_dotenv
 
-util.load_dotenv_from_azd()
+load_dotenv()
+
+#util.load_dotenv_from_azd()
 util.set_up_tracing()
 util.set_up_metrics()
 util.set_up_logging()
@@ -31,26 +37,29 @@ class SemanticOrchastrator:
         self.logger.debug("Semantic Orchestrator Handler init")
         
         endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        api_key = os.getenv("AZURE_OPENAI_KEY")
         deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
         
         self.gpt4o_service = AzureAIInferenceChatCompletion(
-            ai_model_id="gpt-4o",
+            ai_model_id=deployment_name,
             client=aio_inference.ChatCompletionsClient(
                 endpoint=f"{str(endpoint).strip('/')}/openai/deployments/{deployment_name}",
+                #credential=AzureKeyCredential(api_key),
                 credential=aio_identity.DefaultAzureCredential(),
                 credential_scopes=["https://cognitiveservices.azure.com/.default"],
             ))
  
+        self.logger.debug(f"{str(endpoint).strip('/')}/openai/deployments/{deployment_name}")
  
     # --------------------------------------------
     # ABSTRACT method - MUST be implemented by the subclass
     # --------------------------------------------
     @abstractmethod
-    def create_agent_group_chat(self): 
+    async def create_agent_group_chat(self): 
         pass
     
     async def process_conversation(self, user_id, conversation_messages):
-        agent_group_chat = self.create_agent_group_chat()
+        agent_group_chat = await self.create_agent_group_chat()
         chat_history = [
             ChatMessageContent(
                 role=AuthorRole(d.get('role')),
@@ -99,12 +108,13 @@ class SemanticOrchastrator:
      # --------------------------------------------
     # Create Agent Group Chat from Agent Service Foundry SDK defined Agetns
     # --------------------------------------------
-    def create_agent_from_foundry(
+    async def create_agent_from_foundry(
         self, 
         kernel: Kernel, 
         service_id: str, 
         agent_initializer: AgentInitializer, 
-        agent_type: str
+        agent_type: str,
+        foundry_client: AIProjectClient
     ) -> ChatCompletionAgent:
         """
         Fetches (or creates) the agent in Foundry via agent_initializer, then
@@ -115,40 +125,11 @@ class SemanticOrchastrator:
         #   This reads the same local .yaml you have in Foundry, but returns 
         #   the Foundry agent object (including instructions, description, tools, etc.)
 
-        # 2) Extract metadata from the Foundry agent
-        #    Depending on the shape of the object returned by foundry_agent, 
-        #    you might have:
-        agent_name = foundry_agent.name  # e.g. "crm-agent"
-        agent_description = foundry_agent.description
-        agent_instructions = foundry_agent.instructions
-        agent_temperature = foundry_agent.temperature or 0.5
+        foundry_agent_sk = await AzureAssistantAgent.retrieve_foundry(
+            project_client=foundry_client,
+            agent=foundry_agent, 
+            kernel=kernel)
 
-        # 3) Convert Foundry tools -> SK function filters or kernel plugins 
-        #    If you want to filter on included plugins:
-        included_plugins = []
-        if foundry_agent.tools:
-            # If the Foundry agent has tool definitions, you might parse them:
-            for t in foundry_agent.tools:
-                # If 't.name' is something you also have in your SK plugin registry:
-                included_plugins.append(t.name)
-
-        # 4) Create the SK ChatCompletionAgent
-        sk_agent = ChatCompletionAgent(
-            service_id=service_id,
-            kernel=kernel,
-            name=agent_name,
-            execution_settings=AzureChatPromptExecutionSettings(
-                temperature=agent_temperature,
-                function_choice_behavior=FunctionChoiceBehavior.Auto(
-                    filters={
-                        "included_plugins": included_plugins
-                    }
-                ),
-            ),
-            description=agent_description,
-            instructions=agent_instructions
-        )
-
-        return sk_agent
+        return foundry_agent_sk
 
  

@@ -1,44 +1,48 @@
 import json
-import os
-import logging
-
-from typing import Annotated, Any, Callable, Set, Dict, List, Optional
-from semantic_kernel.functions import kernel_function
-
+from typing import Any, Callable, Set, Dict, List, Optional
 from crm_store import CRMStore
+from azure.identity import DefaultAzureCredential
+from dotenv import load_dotenv
+import os
 
-class CRMFacade:
-    """ 
-    The class acts as an facade for the crm_store.
-    The facade is only required if the same CRM Store to be used by both Vanilla and SK frameworks
-    Once a single framwork is adopted it can be retired.
+# Load environment variables from .env file
+load_dotenv()
+
+COSMOSDB_ENDPOINT=os.environ["COSMOSDB_ENDPOINT"]
+COSMOSDB_DATABASE_NAME=os.environ["COSMOSDB_DATABASE_NAME"]
+COSMOSDB_CONTAINER_CLIENT_NAME=os.environ["COSMOSDB_CONTAINER_CLIENT_NAME"]
+
+crm_db = CRMStore(
+        url=COSMOSDB_ENDPOINT,
+        key=DefaultAzureCredential(),
+        database_name=COSMOSDB_DATABASE_NAME,
+        container_name=COSMOSDB_CONTAINER_CLIENT_NAME)
+
+# These are the user-defined functions that can be called by the agent.
+def load_from_crm_by_client_fullname(full_name: str) -> str:
     """
+    Load insured client data from the CRM from the given full name.
     
-    def __init__(self, key, cosmosdb_endpoint, crm_database_name, crm_container_name):
-        self.crm_db = CRMStore(
-            url=cosmosdb_endpoint,
-            key=key,
-            database_name=crm_database_name,
-            container_name=crm_container_name)
+    :param fullname: The customer full name to search for.
+    :return: The output is a customer profile.
+    """
 
-    @kernel_function(
-        name="load_from_crm_by_client_fullname",
-        description="Load insured client data from the CRM from the given full name")
-    def get_customer_profile_by_full_name(self,
-                                          full_name: Annotated[str,"The customer full name to search for"]) -> Annotated[str, "The output is a customer profile"]:
-        response = self.crm_db.get_customer_profile_by_full_name(full_name)
-        return json.dumps(response) if response else None
+    response = crm_db.get_customer_profile_by_full_name(full_name)
+    return json.dumps(response) if response else None
 
-    @kernel_function(
-        name="load_from_crm_by_client_id",
-        description="Load insured client data from the CRM from the client_id")
-    def get_customer_profile_by_client_id(self, 
-                                          client_id: Annotated[str,"The customer client_id to search for"]) -> Annotated[str, "The output is a customer profile"]:
-        response = self.crm_db.get_customer_profile_by_client_id(client_id)
-        return json.dumps(response) if response else None
-        
-    #Statically defined user functions for fast reference
-    crm_functions: Set[Callable[..., Any]] = {
-        get_customer_profile_by_full_name,
-        get_customer_profile_by_client_id,
-    }
+def load_from_crm_by_client_id(client_id: str) -> str:
+    """
+    Load insured client data from the CRM from the client_id.
+    
+    :param client_id: The customer client_id to search for.
+    :return: The output is a customer profile.
+    """
+
+    response = crm_db.get_customer_profile_by_client_id(client_id)
+    return json.dumps(response) if response else None
+
+#Statically defined user functions for fast reference
+crm_functions: Set[Callable[..., Any]] = {
+    load_from_crm_by_client_fullname,
+    load_from_crm_by_client_id,
+}
