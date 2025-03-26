@@ -4,6 +4,7 @@ import json
 import yaml
 import datetime
 from abc import ABC, abstractmethod
+from semantic_kernel.functions import KernelArguments
 from semantic_kernel.agents import ChatCompletionAgent
 from semantic_kernel.connectors.ai.open_ai import AzureChatPromptExecutionSettings
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
@@ -15,7 +16,6 @@ from semantic_kernel.connectors.ai.azure_ai_inference import AzureAIInferenceCha
 import azure.ai.inference.aio as aio_inference
 import azure.identity.aio as aio_identity
 
-from sk.orchestrators.temp_agent import CustomAgentBase
 import util
 
 util.load_dotenv_from_azd()
@@ -82,39 +82,37 @@ class SemanticOrchastrator:
         with open(definition_file_path, 'r', encoding='utf-8') as file:
             definition = yaml.safe_load(file)
             
-        return CustomAgentBase(
-            service_id=service_id,
-            kernel=kernel,
-            name=definition['name'],
-            execution_settings=AzureChatPromptExecutionSettings(
-                temperature=definition.get('temperature', 0.5),
-                function_choice_behavior=FunctionChoiceBehavior.Auto(
-                    filters={"included_plugins": definition.get('included_plugins', [])}
-                )
-            ),
-            description=definition['description'],
-            instructions=definition['instructions']
-        )
-        
+        # return CustomAgentBase(
+        #     service_id=service_id,
+        #     kernel=kernel,
+        #     name=definition['name'],
+        #     execution_settings=AzureChatPromptExecutionSettings(
+        #         temperature=definition.get('temperature', 0.5),
+        #         function_choice_behavior=FunctionChoiceBehavior.Auto(
+        #             filters={"included_plugins": definition.get('included_plugins', [])}
+        #         )
+        #     ),
+        #     description=definition['description'],
+        #     instructions=definition['instructions']
+        # )
     # DO NOT DELETE. This is the original implementation of the create_agent method
     # Once https://github.com/microsoft/semantic-kernel/issues/10174 is released, 
     # we can switch to the below implementation    
     # def create_agent(self, kernel, service_id, definition_file_path):
+    
+        execution_settings=AzureChatPromptExecutionSettings(
+                temperature=definition.get('temperature', 0.5),
+                function_choice_behavior=FunctionChoiceBehavior.Auto(
+                    filters={"included_plugins": definition.get('included_plugins', [])}
+                )
+            )
         
-    #     with open(definition_file_path, 'r') as file:
-    #         definition = yaml.safe_load(file)
-
-    #     return ChatCompletionAgent(
-    #         service_id=service_id,
-    #         kernel=kernel,
-    #         name=definition['name'],
-    #         execution_settings=AzureChatPromptExecutionSettings(
-    #             temperature=definition.get('temperature', 0.5),
-    #             function_choice_behavior=FunctionChoiceBehavior.Auto(
-    #                 filters={"included_plugins": definition.get('included_plugins', [])}
-    #             )
-    #         ),
-    #         description=definition['description'],
-    #         instructions=definition['instructions']
-    #     )
+        return ChatCompletionAgent(
+            service=kernel.get_service(service_id=service_id),
+            kernel=kernel,
+            arguments=KernelArguments(settings=execution_settings),
+            name=definition['name'],
+            description=definition['description'],
+            instructions=definition['instructions']
+        )
  
