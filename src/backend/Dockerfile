@@ -20,14 +20,20 @@ ENV UV_LINK_MODE=copy \
     # UV_PYTHON_DOWNLOADS=never \
     # UV_PYTHON=python3.12 \
 
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && update-ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-COPY uv.lock pyproject.toml /app/
-RUN uv sync \
+COPY pyproject.toml /app/
+RUN uv lock --trusted-host pypi.org --trusted-host files.pythonhosted.org && uv sync\
     --frozen \
     --no-dev \
     --no-install-workspace \
     --no-editable \
+    --trusted-host pypi.org \
+    --trusted-host files.pythonhosted.org \
+    --native-tls \
     --all-packages
 
 COPY *.py ./  
