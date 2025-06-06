@@ -26,7 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 
 COPY pyproject.toml /app/
-RUN uv lock --trusted-host pypi.org --trusted-host files.pythonhosted.org && uv sync\
+RUN uv lock --trusted-host pypi.org --trusted-host files.pythonhosted.org
+COPY uv.lock /app/
+RUN uv sync \
     --frozen \
     --no-dev \
     --no-install-workspace \
