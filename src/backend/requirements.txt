@@ -381,7 +381,7 @@ typing-inspection==0.4.0
     # via pydantic
 tzdata==2025.2
     # via pandas
-urllib3==2.4.0
+urllib3==2.6.0
     # via
     #   pyppeteer
     #   requests
