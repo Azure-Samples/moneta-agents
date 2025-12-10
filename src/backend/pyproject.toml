@@ -31,10 +31,17 @@ dependencies = [
 
     # Other dependencies
     "azure-cosmos>=4.9.0",
-    "requests>=2.32.3",
+    "requests>=2.32.4",
     "pyyaml>=6.0.2",
-    "fastapi>=0.115.6",
+    "fastapi>=0.115.12",
     "uvicorn>=0.34.0",
     "lxml-html-clean>=0.4.1",
-    "feedparser>=6.0.11"
+    "feedparser>=6.0.11",
+    
+    # Security updates (transitive dependency fixes)
+    "aiohttp>=3.12.14",
+    "protobuf>=5.29.5",
+    "starlette>=0.49.1",
+    "urllib3>=2.6.0",
+    "werkzeug>=3.1.4"
 ]
