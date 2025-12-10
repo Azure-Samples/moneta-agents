@@ -84,9 +84,11 @@ if "user_input" not in st.session_state:
 if "last_selected_question" not in st.session_state:
     st.session_state.last_selected_question = None
 if "use_case" not in st.session_state:
-    st.session_state.use_case = 'fsi_insurance'  # Default use case
+    st.session_state.use_case = 'fsi_banking'  # Default use case
 if "AGENTS" not in st.session_state:
-    st.session_state.AGENTS = INS_AGENTS  # Default agents
+    st.session_state.AGENTS = BANK_AGENTS  # Default agents
+if "is_deep_research" not in st.session_state:
+    st.session_state.is_deep_research = False
 
 def fetch_conversations():
     payload = {
@@ -129,7 +131,7 @@ def display_sidebar():
 
         # Initialize AGENTS based on use_case
         if st.session_state.use_case == 'fsi_insurance':
-            st.session_state.AGENTS = INS_AGENTS
+            st.session_state.AGENTS = INS_AGENTS 
         else:
             st.session_state.AGENTS = BANK_AGENTS
 
@@ -147,7 +149,7 @@ def display_sidebar():
                             {details['emoji']}
                         </div>
                         <div class="agent-name">
-                            {agent_name} Agent
+                            {agent_name}
                         </div>
                         <div class="agent-status">
                             ● Online
@@ -219,17 +221,24 @@ def display_chat():
     if st.session_state.current_conversation_index is None:
         st.write("Please start a new conversation or select an existing one from the sidebar.")
         return
-
+    
     question_options = []
     # Get the current conversation
     conversation_dict = st.session_state.conversations[st.session_state.current_conversation_index]
+    # ensure to have the deep_research flag
+    if 'deep_research_used' not in conversation_dict:
+        conversation_dict['deep_research_used'] = False
+
     if 'messages' not in conversation_dict:
         conversation_dict['messages'] = []
 
     messages = conversation_dict['messages']
 
     # Display predefined questions based on use case
-    predefined_questions = BANK_PREDEFINED_QUESTIONS if st.session_state.use_case == 'fsi_banking' else INS_PREDEFINED_QUESTIONS
+    if st.session_state.use_case == 'fsi_banking':
+        predefined_questions = BANK_PREDEFINED_QUESTIONS
+    else:
+        predefined_questions = INS_PREDEFINED_QUESTIONS
     question_options = ["Select a predefined question or type your own below"] + predefined_questions
     selected_question = st.selectbox("", question_options, key="question_selectbox")
 
@@ -264,7 +273,7 @@ def display_chat():
                         st.markdown(
                             f"""
                             <div style='border-left: 5px solid {agent_info['color']}; padding-left: 10px;'>
-                                <strong>{agent_name} Agent:</strong> 
+                                <strong>{agent_name}:</strong> 
                                 <div>{message['content']}</div>
                             </div>
                             """,
@@ -275,9 +284,27 @@ def display_chat():
                     with st.chat_message(message['role']):
                         st.write(f"{agent_name}: {message['content']}")
 
+    #display or not the the deep research radio
+    if not conversation_dict['deep_research_used']:
+        mode = st.radio(
+            "Mode:",
+            ["Standard", "Deep Research"],
+            index=1 if st.session_state.is_deep_research else 0,
+            horizontal=True,
+        )
+        st.session_state.is_deep_research = (mode == "Deep Research")
+    else:
+        st.markdown("🔒 **Deep Research already used in this conversation.**")
+        # force it off
+        st.session_state.is_deep_research = False
+
     # Handle user input
     user_input = st.chat_input("Ask Moneta anything...")
     if user_input:
+        # if they're asking a deep research query, mark it used so it can't be re‑enabled
+        if st.session_state.is_deep_research:
+            conversation_dict['deep_research_used'] = True
+            
         messages.append({'role': 'user', 'content': user_input})
         with st.spinner('Moneta agents are collaborating to find the best answer...'):
             assistant_responses = send_message_to_backend(user_input, conversation_dict)
@@ -291,7 +318,8 @@ def send_message_to_backend(user_input, conversation_dict):
     payload = {
         "user_id": st.session_state.user_id,
         "message": user_input,
-        "use_case": st.session_state.use_case
+        "use_case": st.session_state.use_case,
+        "is_deep_research": st.session_state.is_deep_research
     }
     if conversation_dict.get('name') != 'New Conversation':
         payload["chat_id"] = conversation_dict.get('name')
@@ -331,9 +359,13 @@ def call_backend(payload):
 
 def start_new_conversation():
     st.session_state.conversations.append({
-        'messages': [],
-        'name': 'New Conversation'
+    'messages': [],
+        'name': 'New Conversation',
+        'deep_research_used': False   # ← track per-conversation
     })
+    # reset deep research toggle whenever you start fresh
+    st.session_state.is_deep_research = False
+
     st.session_state.current_conversation_index = len(st.session_state.conversations) - 1
     st.session_state.last_selected_question = "Select a predefined question or type your own below"
 

@@ -1,6 +1,7 @@
 {  
   "id": "123456",  
   "clientID": "123456",  
+  "status" : "active",
   "firstName": "Pete",  
   "lastName": "Mitchell",  
   "fullName": "Pete Mitchell",  
@@ -32,6 +33,9 @@
     "investmentObjectives": "Growth",  
     "investmentHorizon": "Long-term"  
   },  
+  "pep_status": false,
+  "documents_provided": [],
+  "name_screening_result": "None",
   "portfolio": {
     "strategy" :"The portfolio focus on assets with higher growth potential, such as stocks in emerging industries or innovative companies. By emphasizing growth, investors accept greater risk but also seek higher returns.",
     "riskProfile" : "Growth",

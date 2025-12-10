@@ -1,21 +1,15 @@
-#!/usr/bin/env bash
-set -euo pipefail
-[[ ${DEBUG-} =~ ^1|yes|true$ ]] && set -o xtrace
+#!/bin/bash
+set -e
 
-# Update the package list and upgrade all packages
+# Update APT cache
 sudo apt update
-sudo apt upgrade -y
 
-# Install UV and sync the configuration (installs required python packages)
+pip install --upgrade pip 
+pip install -r src/frontend/requirements.txt 
+pip install -r src/backend/requirements.txt
+
+# Install uv, see https://astral.sh for additional information
 curl -LsSf https://astral.sh/uv/install.sh | sh
+echo 'export UV_LINK_MODE=copy' >> $HOME/.bashrc
+source $HOME/.bashrc
 
-# Install Staship prompt
-curl -sS https://starship.rs/install.sh | sh -s -- -y
-echo 'eval "$(starship init bash)"' >> ~/.bashrc
-source ~/.bashrc
-
-printf "\n\n\033[1m✅ DevContainer for Moneta Agents was successfully created!\033[0m\n\n"
-printf "Next steps: \n"
-printf "  - Start hacking right away! 🚀\n"
-printf "  - Add python dependencies to pyproject.yaml by running 'uv add <package>'\n"
-printf "  - See https://docs.astral.sh/uv/ for more information\n"

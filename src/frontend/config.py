@@ -2,16 +2,17 @@
 INS_PREDEFINED_QUESTIONS = [
     "Provide information about my client John Doe",
     "Can he travel to Bali with his current coverage?",
-    "Do we cover COVID-19 treatements in Indonesia?"
+    "Search for detailed terms and conditions for coverages abroad",
+    "Is COVID-19 treatments in Indonesia covered by travel insurance international?"
 ]
 
 INS_AGENTS = {
-    'CRM': {
+    'ins-crm-agent': {
         'emoji': '👥', 
         'color': '#17a2b8',
         'description': 'Access and retrieve customer information from the company\'s database. It specifically focuses on insurance-related client data, such as policies, coverages, and premiums, but will only provide information when given a specific client\'s name or ID.'
     },
-    'Product': {
+    'ins-policies-agent': {
         'emoji': '🔍', 
         'color': '#ffc107',
         'description': 'Dedicated tool for answering general questions about investment funds and ETFs. Unlike the CRM Agent which handles client-specific data, this agent responds to general product inquiries by searching through an AI-powered knowledge base. It\'s designed to provide accurate product information, details about fund offerings, and general investment conditions.'
@@ -20,7 +21,7 @@ INS_AGENTS = {
 
 # Banking Configuration
 BANK_PREDEFINED_QUESTIONS = [
-    "Provide me a summary of the portfolio's positions of my client id 123456",
+    "Provide me a summary of the portfolio's positions of my client Pete Mitchell",
     "What are our Chief Investment Office (CIO) believes on the AI sector?",
     "What is our in-house view from our CIO about Growth investing?",
     "Show Pete Mitchell portfolio performance and suggest any rebalancing options based on recent CIO views.",
@@ -31,27 +32,28 @@ BANK_PREDEFINED_QUESTIONS = [
 ]
 
 BANK_AGENTS = {
-    'CRM': {
+    'bank-crm-agent': {
         'emoji': '👥', 
         'color': '#17a2b8',
         'description': 'Access and retrieve customer information from the company\'s database. It specifically focuses on insurance-related client data, such as policies, coverages, and premiums, but will only provide information when given a specific client\'s name or ID.'
     },
-    'Funds': {
+    'bank-funds-agent': {
         'emoji': '💰', 
         'color': '#007bff',
         'description': 'Provides fund analysis and investment recommendations. It searches through internal bank documents to retrieve the institution\'s official investment views, research findings, and recommendations. This agent is designed to help advisors make informed decisions about their clients\' investments.'
     },
-    'CIO': {
+    'bank-cio-agent': {
         'emoji': '📈', 
         'color': '#ffc107',
         'description': 'Provides access to official investment research and analysis from Chief Investment Office (CIO). It searches through internal bank documents to retrieve the institution\'s official investment views, research findings, and recommendations.'
     },
-    'News': {
+    'bank-news-agent': {
         'emoji': '📰', 
         'color': '#6c757d',
         'description': 'Automatically collects and organizes the latest investment news from Morningstar for your portfolio positions. It helps you stay informed about your investments by gathering relevant articles, including their titles, descriptions, categories, and publication details, all presented in an organized format for easy review.'
     }
 }
+
 
 # CSS Styles
 AGENT_STYLES = """

@@ -1,0 +1,155 @@
+{
+  "sample_funds_data": {
+    "etfs": [
+      {
+        "id": "voo-etf",
+        "fund_name": "Vanguard S&P 500 ETF",
+        "ticker": "VOO",
+        "fund_type": "ETF",
+        "category": "Large Blend",
+        "expense_ratio": "0.03%",
+        "aum": "$450.2B",
+        "inception_date": "2010-09-07",
+        "top_holdings": [
+          {"name": "Apple Inc", "ticker": "AAPL", "weight": "7.15%"},
+          {"name": "Microsoft Corp", "ticker": "MSFT", "weight": "6.89%"},
+          {"name": "Alphabet Inc Class A", "ticker": "GOOGL", "weight": "2.15%"},
+          {"name": "Amazon.com Inc", "ticker": "AMZN", "weight": "2.09%"},
+          {"name": "NVIDIA Corp", "ticker": "NVDA", "weight": "2.05%"}
+        ],
+        "sector_exposure": {
+          "Technology": "28.5%",
+          "Healthcare": "13.2%", 
+          "Financial Services": "13.1%",
+          "Consumer Discretionary": "10.8%",
+          "Communication Services": "8.9%"
+        },
+        "performance": {
+          "1_year": "12.5%",
+          "3_year": "8.7%",
+          "5_year": "11.2%",
+          "10_year": "12.8%"
+        },
+        "risk_metrics": {
+          "beta": "1.00",
+          "standard_deviation": "18.2%",
+          "sharpe_ratio": "0.68"
+        }
+      },
+      {
+        "id": "spy-etf",
+        "fund_name": "SPDR S&P 500 ETF Trust",
+        "ticker": "SPY",
+        "fund_type": "ETF",
+        "category": "Large Blend",
+        "expense_ratio": "0.09%",
+        "aum": "$520.8B",
+        "inception_date": "1993-01-22",
+        "top_holdings": [
+          {"name": "Apple Inc", "ticker": "AAPL", "weight": "7.15%"},
+          {"name": "Microsoft Corp", "ticker": "MSFT", "weight": "6.89%"},
+          {"name": "Alphabet Inc Class A", "ticker": "GOOGL", "weight": "2.15%"},
+          {"name": "Amazon.com Inc", "ticker": "AMZN", "weight": "2.09%"},
+          {"name": "NVIDIA Corp", "ticker": "NVDA", "weight": "2.05%"}
+        ],
+        "sector_exposure": {
+          "Technology": "28.5%",
+          "Healthcare": "13.2%",
+          "Financial Services": "13.1%",
+          "Consumer Discretionary": "10.8%",
+          "Communication Services": "8.9%"
+        },
+        "performance": {
+          "1_year": "12.4%",
+          "3_year": "8.6%",
+          "5_year": "11.1%",
+          "10_year": "12.7%"
+        },
+        "risk_metrics": {
+          "beta": "1.00",
+          "standard_deviation": "18.2%",
+          "sharpe_ratio": "0.67"
+        }
+      },
+      {
+        "id": "qqq-etf",
+        "fund_name": "Invesco QQQ Trust",
+        "ticker": "QQQ",
+        "fund_type": "ETF",
+        "category": "Large Growth",
+        "expense_ratio": "0.20%",
+        "aum": "$280.5B",
+        "inception_date": "1999-03-10",
+        "top_holdings": [
+          {"name": "Apple Inc", "ticker": "AAPL", "weight": "8.85%"},
+          {"name": "Microsoft Corp", "ticker": "MSFT", "weight": "8.72%"},
+          {"name": "NVIDIA Corp", "ticker": "NVDA", "weight": "8.45%"},
+          {"name": "Alphabet Inc Class A", "ticker": "GOOGL", "weight": "2.65%"},
+          {"name": "Amazon.com Inc", "ticker": "AMZN", "weight": "2.48%"}
+        ],
+        "sector_exposure": {
+          "Technology": "62.8%",
+          "Communication Services": "16.2%",
+          "Consumer Discretionary": "14.5%",
+          "Healthcare": "4.8%",
+          "Industrials": "1.2%"
+        },
+        "performance": {
+          "1_year": "18.2%",
+          "3_year": "12.4%",
+          "5_year": "16.8%",
+          "10_year": "17.2%"
+        },
+        "risk_metrics": {
+          "beta": "1.15",
+          "standard_deviation": "22.8%",
+          "sharpe_ratio": "0.79"
+        }
+      }
+    ],
+    "mutual_funds": [
+      {
+        "id": "vtsax-fund",
+        "fund_name": "Vanguard Total Stock Market Index Fund Admiral Shares",
+        "ticker": "VTSAX",
+        "fund_type": "Mutual Fund",
+        "category": "Large Blend",
+        "expense_ratio": "0.04%",
+        "aum": "$1.4T",
+        "inception_date": "2000-11-13",
+        "minimum_investment": "$3,000",
+        "top_holdings": [
+          {"name": "Apple Inc", "ticker": "AAPL", "weight": "5.8%"},
+          {"name": "Microsoft Corp", "ticker": "MSFT", "weight": "5.6%"},
+          {"name": "Alphabet Inc Class A", "ticker": "GOOGL", "weight": "1.7%"},
+          {"name": "Amazon.com Inc", "ticker": "AMZN", "weight": "1.7%"},
+          {"name": "NVIDIA Corp", "ticker": "NVDA", "weight": "1.6%"}
+        ],
+        "sector_exposure": {
+          "Technology": "23.2%",
+          "Healthcare": "13.8%",
+          "Financial Services": "12.9%",
+          "Consumer Discretionary": "10.9%",
+          "Industrials": "8.7%"
+        },
+        "performance": {
+          "1_year": "12.8%",
+          "3_year": "8.9%",
+          "5_year": "11.5%",
+          "10_year": "12.9%"
+        },
+        "risk_metrics": {
+          "beta": "1.00",
+          "standard_deviation": "18.5%",
+          "sharpe_ratio": "0.69"
+        }
+      }
+    ],
+    "metadata": {
+      "total_funds": 4,
+      "last_updated": "2024-12-15T12:00:00Z",
+      "data_source": "Morningstar, Vanguard, State Street, Invesco",
+      "currency": "USD"
+    }
+  }
+}

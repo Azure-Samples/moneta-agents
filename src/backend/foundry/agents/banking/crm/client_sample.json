@@ -1,0 +1,142 @@
+{
+    "id": "123456",
+    "clientID": "123456",
+    "firstName": "Pete",
+    "lastName": "Mitchell",
+    "fullName": "Pete Mitchell",
+    "dateOfBirth": "1980-01-01",
+    "nationality": "American",
+    "contactDetails": {
+        "email": "pete.mit@example.com",
+        "phone": "123-456-7890"
+    },
+    "address": {
+        "street": "123 Main St",
+        "city": "New York",
+        "state": "NY",
+        "postalCode": "12345",
+        "country": "USA"
+    },
+    "financialInformation": {
+        "sourceOfWealth": "Investments",
+        "netIncome": "150000",
+        "annualIncome": "200000",
+        "assets": {
+            "realEstate": "500000",
+            "investments": "300000",
+            "cash": "100000"
+        },
+        "profession": "Aviation Pilot"
+    },
+    "investmentProfile": {
+        "riskProfile": "Aggressive",
+        "investmentObjectives": "Growth",
+        "investmentHorizon": "Long-term"
+    },
+    "declared_source_of_wealth": [
+        "Investments",
+        "Employment"
+    ],
+    "portfolio": {
+        "strategy": "The portfolio focus on assets with higher growth potential, such as stocks in emerging industries or innovative companies. By emphasizing growth, investors accept greater risk but also seek higher returns.",
+        "riskProfile": "Growth",
+        "performanceYTD": "12.3%",
+        "performanceSinceInception": "22.3%",
+        "inceptionDate": "12/07/2015",
+        "positions": [
+            {
+                "ticker": "MSFT",
+                "companyName": "Microsoft Corp",
+                "sector": "Technology",
+                "industry": "Software",
+                "currency": "USD",
+                "assetClass": "Equity",
+                "type": "Common Stock",
+                "average_cost": "350",
+                "units": "200"
+            },
+            {
+                "ticker": "NVDA",
+                "companyName": "NVIDIA Corp",
+                "sector": "Technology",
+                "industry": "Semiconductors",
+                "currency": "USD",
+                "assetClass": "Equity",
+                "type": "Common Stock",
+                "average_cost": "150",
+                "units": "150"
+            },
+            {
+                "ticker": "AAPL",
+                "companyName": "Apple Inc",
+                "sector": "Technology",
+                "industry": "Consumer Electronics",
+                "currency": "USD",
+                "assetClass": "Equity",
+                "type": "Common Stock",
+                "average_cost": "90",
+                "units": "100"
+            },
+            {
+                "ticker": "AMZN",
+                "companyName": "Amazon.com Inc",
+                "sector": "Consumer Discretionary",
+                "industry": "Internet & Direct Marketing Retail",
+                "currency": "USD",
+                "assetClass": "Equity",
+                "type": "Common Stock",
+                "average_cost": "150",
+                "units": "180"
+            },
+            {
+                "ticker": "GOOGL",
+                "companyName": "Alphabet Inc",
+                "sector": "Communication Services",
+                "industry": "Interactive Media & Services",
+                "currency": "USD",
+                "assetClass": "Equity",
+                "type": "Common Stock",
+                "average_cost": "125",
+                "units": "50"
+            },
+            {
+                "ticker": "META",
+                "companyName": "Facebook Inc / Meta",
+                "sector": "Communication Services",
+                "industry": "Interactive Media & Services",
+                "currency": "USD",
+                "assetClass": "Equity",
+                "type": "Common Stock",
+                "average_cost": "100",
+                "units": "50"
+            },
+            {
+                "ticker": "JNJ",
+                "companyName": "Johnson & Johnson",
+                "sector": "Health Care",
+                "industry": "Pharmaceuticals",
+                "currency": "USD",
+                "assetClass": "Equity",
+                "type": "Common Stock",
+                "average_cost": "100",
+                "units": "40"
+            },
+            {
+                "ticker": "V",
+                "companyName": "Visa Inc",
+                "sector": "Financials",
+                "industry": "IT Services",
+                "currency": "USD",
+                "assetClass": "Equity",
+                "type": "Common Stock",
+                "average_cost": "78",
+                "units": "50"
+            }
+        ]
+    },
+    "_rid": "TJJPANstunIEAAAAAAAAAA==",
+    "_self": "dbs/TJJPAA==/colls/TJJPANstunI=/docs/TJJPANstunIEAAAAAAAAAA==/",
+    "_etag": "\"000079fd-0000-4700-0000-67d42efb0000\"",
+    "_attachments": "attachments/",
+    "_ts": 1741958907
+}

@@ -5,21 +5,36 @@ description = "Backend propject steup for Moneta"
 readme = "README.md"
 requires-python = ">=3.12, <3.13"
 dependencies = [
-    "semantic-kernel>=1.27.2",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.29.0",
-    "opentelemetry-instrumentation>=0.50b0",
-    "azure-monitor-opentelemetry-exporter>=1.0.0b33",
-    "azure-identity>=1.19.0",
-    "azure-ai-inference[opentelemetry]>=1.0.0b7",
-    "azure-cosmos>=4.9.0",
-    "azure-search-documents>=11.5.2",
-    "grpcio-tools>=1.68.1",
+    # Agent framework
+    "agent-framework[azure]>=1.0.0b251204",
+
+    # Azure dependencies
+    "azure-identity>=1.21.0",
+    "azure-ai-inference>=1.0.0b9",
     "python-dotenv>=1.0.1",
+
+    # Search integration
+    "azure-search-documents>=11.6.0",
+
+    # MCP support
+    "mcp>=1.11.0",
+
+    # News agent dependencies
+    "requests-html>=0.10.0",
+    "pandas>=2.2.3",
+
+    # Tracing and observability
+    "azure-monitor-opentelemetry-exporter>=1.0.0b34",
+    "opentelemetry-sdk>=1.29.0",
+    "azure-core-tracing-opentelemetry>=1.0.0b12",
+    "opentelemetry-exporter-otlp>=1.29.0",
+
+    # Other dependencies
+    "azure-cosmos>=4.9.0",
     "requests>=2.32.3",
     "pyyaml>=6.0.2",
     "fastapi>=0.115.6",
-    "uvicorn>=0.32.1",
-    "requests-html>=0.10.0",
+    "uvicorn>=0.34.0",
     "lxml-html-clean>=0.4.1",
-   "pandas>=2.2.3",
+    "feedparser>=6.0.11"
 ]

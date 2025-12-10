@@ -84,6 +84,9 @@ param cosmosDbInsuranceContainerName string = 'user_fsi_ins_data'
 @description('Name of the Cosmos DB container for banking')
 param cosmosDbBankingContainerName string = 'user_fsi_bank_data'
 
+@description('Name of the Cosmos DB container for energy')
+param cosmosDbEnergyContainerName string = 'user_energy_data'
+
 @description('Name of the Cosmos DB container for CRM data')
 param cosmosDbCRMContainerName string = 'clientdata'
 
@@ -544,6 +547,32 @@ resource cosmosDbBankingContainer 'Microsoft.DocumentDB/databaseAccounts/sqlData
   tags: tags
 }
 
+resource cosmosDbEnergyContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2022-05-15' = {
+  parent: cosmosDbDatabase
+  name: cosmosDbEnergyContainerName
+  properties: {
+    resource: {
+      id: cosmosDbEnergyContainerName
+      partitionKey: {
+        paths: ['/user_id']
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+        includedPaths: [
+          {
+            path: '/*'
+          }
+        ]
+        excludedPaths: []
+      }
+    }
+    options: {}
+  }
+  tags: tags
+}
+
 resource cosmosDbCRMContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2022-05-15' = {
   parent: cosmosDbDatabase
   name: cosmosDbCRMContainerName
@@ -745,6 +774,7 @@ module backendApp 'modules/app/container-apps.bicep' = {
       COSMOSDB_CONTAINER_CLIENT_NAME: cosmosDbCRMContainerName
       COSMOSDB_CONTAINER_FSI_BANK_USER_NAME: cosmosDbBankingContainerName
       COSMOSDB_CONTAINER_FSI_INS_USER_NAME: cosmosDbInsuranceContainerName
+      COSMOSDB_CONTAINER_ENERGY_USER_NAME: cosmosDbEnergyContainerName
       COSMOSDB_DATABASE_NAME: cosmosDbDatabaseName
       COSMOSDB_ENDPOINT: cosmosDbAccount.properties.documentEndpoint
 
@@ -850,6 +880,7 @@ output COSMOSDB_DATABASE_NAME string = cosmosDbDatabaseName
 output COSMOSDB_CONTAINER_CLIENT_NAME string = cosmosDbCRMContainerName
 output COSMOSDB_CONTAINER_FSI_BANK_USER_NAME string = cosmosDbBankingContainerName
 output COSMOSDB_CONTAINER_FSI_INS_USER_NAME string = cosmosDbInsuranceContainerName
+output COSMOSDB_CONTAINER_ENERGY_USER_NAME string = cosmosDbEnergyContainerName
 
 output AI_SEARCH_ENDPOINT string = 'https://${searchService.outputs.name}.search.windows.net'
 output AI_SEARCH_PRINCIPAL_ID string = searchIdentity.properties.principalId
