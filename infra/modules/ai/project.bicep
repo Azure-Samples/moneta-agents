@@ -72,3 +72,6 @@ resource hub 'Microsoft.MachineLearningServices/workspaces@2024-01-01-preview' e
 output resourceId string = project.id
 
 output name string = project.name
+
+@description('The discovery URL of the project')
+output endpoint string = project.properties.discoveryUrl

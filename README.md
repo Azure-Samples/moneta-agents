@@ -198,6 +198,32 @@ To configure, follow these steps:
     azd auth login --tenant-id $(azd env get-value AZURE_AUTH_TENANT_ID)
     ```
 
+1. **Set your Azure OpenAI details** (required):
+
+    You must provide your existing Azure OpenAI resource details. The deployment will NOT create a new OpenAI resource.
+
+    ```shell
+    azd env set AZURE_OPENAI_ENDPOINT "https://your-openai-resource.openai.azure.com/"
+    azd env set AZURE_OPENAI_KEY "your-openai-api-key"
+    azd env set AZURE_OPENAI_DEPLOYMENT_NAME "your-deployment-name"
+    ```
+
+    Optionally, if you have a different embedding deployment:
+
+    ```shell
+    azd env set AZURE_OPENAI_EMBEDDING_DEPLOYMENT "your-embedding-deployment-name"
+    azd env set AZURE_OPENAI_API_VERSION "2024-12-01-preview"
+    ```
+
+1. **Choose whether to use Azure AI Foundry** (optional):
+
+    Set `USE_FOUNDRY=true` if you want to deploy Azure AI Foundry Hub and Project for hosted agents with versioning and monitoring in the Foundry UI. Otherwise, agents will run in-memory using Azure OpenAI directly.
+
+    ```shell
+    # To enable Foundry (default is false)
+    azd env set USE_FOUNDRY "true"
+    ```
+
 1. Proceed with AZD deployment:
 
     ```shell

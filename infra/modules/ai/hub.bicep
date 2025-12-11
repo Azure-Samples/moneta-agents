@@ -10,8 +10,8 @@ param keyVaultId string
 param applicationInsightsId string = ''
 @description('The container registry ID to use for the AI Studio Hub Resource')
 param containerRegistryId string = ''
-@description('The OpenAI Cognitive Services account name to use for the AI Studio Hub Resource')
-param openAiName string
+@description('The OpenAI Cognitive Services account name to use for the AI Studio Hub Resource (optional if using external OpenAI)')
+param openAiName string = ''
 @description('The OpenAI Cognitive Services account connection name to use for the AI Studio Hub Resource')
 param openAiConnectionName string
 @description('The Azure Cognitive Search service name to use for the AI Studio Hub Resource')
@@ -59,7 +59,7 @@ resource hub 'Microsoft.MachineLearningServices/workspaces@2024-01-01-preview' =
     publicNetworkAccess: publicNetworkAccess
   }
 
-  resource openAiConnection 'connections' = {
+  resource openAiConnection 'connections' = if (!empty(openAiName)) {
     name: openAiConnectionName
     properties: {
       category: 'AzureOpenAI'
@@ -77,7 +77,7 @@ resource hub 'Microsoft.MachineLearningServices/workspaces@2024-01-01-preview' =
     }
   }
 
-  resource contentSafetyConnection 'connections' = {
+  resource contentSafetyConnection 'connections' = if (!empty(openAiName)) {
     name: openAiContentSafetyConnectionName
     properties: {
       category: 'AzureOpenAI'
@@ -110,7 +110,7 @@ resource hub 'Microsoft.MachineLearningServices/workspaces@2024-01-01-preview' =
     }
 }
 
-resource openAi 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
+resource openAi 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = if (!empty(openAiName)) {
   name: openAiName
 }
 

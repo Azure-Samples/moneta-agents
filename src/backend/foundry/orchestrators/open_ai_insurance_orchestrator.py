@@ -31,7 +31,7 @@ from agent_framework import (
 )
 from agent_framework._workflows._events import AgentRunEvent
 from agent_framework.azure import AzureOpenAIChatClient
-from azure.identity.aio import AzureCliCredential
+from azure.identity import DefaultAzureCredential
 
 # Import specialist agent functions from insurance agents subfolder
 from foundry.agents.insurance.crm.crm_insurance_functions import crm_insurance_functions
@@ -108,13 +108,12 @@ class OpenAIInsuranceOrchestrator:
         # Configuration from environment
         self.openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
         self.openai_deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+        self.openai_key = os.getenv("AZURE_OPENAI_KEY")
 
     async def _ensure_initialized(self):
         """Lazily initialize the workflow and agents."""
         if self._initialized:
             return
-        
-        credential = AzureCliCredential()
         
         # Azure OpenAI mode - use in-memory agents
         if not self.openai_endpoint:
@@ -122,12 +121,22 @@ class OpenAIInsuranceOrchestrator:
                 "AZURE_OPENAI_ENDPOINT is required for Azure OpenAI mode."
             )
         
-        self.logger.info(f"Using Azure OpenAI endpoint for workflow: {self.openai_endpoint}")
-        chat_client = AzureOpenAIChatClient(
-            endpoint=self.openai_endpoint,
-            deployment_name=self.openai_deployment_name,
-            credential=credential
-        )
+        # Use API key if provided, otherwise fall back to Managed Identity
+        if self.openai_key:
+            self.logger.info(f"Using Azure OpenAI endpoint with API key: {self.openai_endpoint}")
+            chat_client = AzureOpenAIChatClient(
+                endpoint=self.openai_endpoint,
+                deployment_name=self.openai_deployment_name,
+                api_key=self.openai_key
+            )
+        else:
+            self.logger.info(f"Using Azure OpenAI endpoint with Managed Identity: {self.openai_endpoint}")
+            credential = DefaultAzureCredential()
+            chat_client = AzureOpenAIChatClient(
+                endpoint=self.openai_endpoint,
+                deployment_name=self.openai_deployment_name,
+                credential=credential
+            )
         coordinator, crm_agent, policies_agent = create_specialist_agents(chat_client)
         
         # Build the handoff workflow with auto-registered handoff tools
@@ -355,16 +364,16 @@ async def main():
         return
     
     try:
-        async with AzureCliCredential() as credential:
-            chat_client = AzureOpenAIChatClient(
-                endpoint=endpoint,
-                deployment_name=deployment_name,
-                credential=credential
-            )
-            
-            coordinator, crm_agent, policies_agent = create_specialist_agents(chat_client)
-            
-            await run_workflow(coordinator, crm_agent, policies_agent)
+        credential = DefaultAzureCredential()
+        chat_client = AzureOpenAIChatClient(
+            endpoint=endpoint,
+            deployment_name=deployment_name,
+            credential=credential
+        )
+        
+        coordinator, crm_agent, policies_agent = create_specialist_agents(chat_client)
+        
+        await run_workflow(coordinator, crm_agent, policies_agent)
     
     except Exception as e:
         print(f"❌ Failed to initialize orchestrator: {str(e)}")

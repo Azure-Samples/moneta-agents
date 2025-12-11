@@ -31,8 +31,7 @@ RUN uv sync \
     --all-packages
 
 COPY *.py ./  
-COPY gbb /app/gbb
-COPY sk /app/sk
+COPY foundry /app/foundry
 
 ###############
 # Final image #

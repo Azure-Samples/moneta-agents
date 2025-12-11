@@ -25,6 +25,24 @@
     },
     "azurePrincipalId": {
       "value": "${AZURE_PRINCIPAL_ID}"
+    },
+    "openAiEndpoint": {
+      "value": "${AZURE_OPENAI_ENDPOINT}"
+    },
+    "openAiKey": {
+      "value": "${AZURE_OPENAI_KEY}"
+    },
+    "openAiDeploymentName": {
+      "value": "${AZURE_OPENAI_DEPLOYMENT_NAME}"
+    },
+    "openAiApiVersion": {
+      "value": "${AZURE_OPENAI_API_VERSION=2024-12-01-preview}"
+    },
+    "openAiEmbeddingDeployment": {
+      "value": "${AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large}"
+    },
+    "useFoundry": {
+      "value": "${USE_FOUNDRY=false}"
     }
   }
 }

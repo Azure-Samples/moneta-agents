@@ -90,6 +90,29 @@ param cosmosDbEnergyContainerName string = 'user_energy_data'
 @description('Name of the Cosmos DB container for CRM data')
 param cosmosDbCRMContainerName string = 'clientdata'
 
+/* ------------------------- OpenAI Configuration --------------------------- */
+
+@description('Azure OpenAI endpoint (e.g., https://your-openai.openai.azure.com/)')
+param openAiEndpoint string
+
+@description('Azure OpenAI API key')
+@secure()
+param openAiKey string
+
+@description('Azure OpenAI deployment name for chat model')
+param openAiDeploymentName string
+
+@description('Azure OpenAI API version to use')
+param openAiApiVersion string = '2024-12-01-preview'
+
+@description('Azure OpenAI embedding deployment name (for AI Search vectorization)')
+param openAiEmbeddingDeployment string = 'text-embedding-3-large'
+
+/* ------------------------- Foundry Configuration -------------------------- */
+
+@description('Whether to deploy and use Azure AI Foundry (Hub and Project)')
+param useFoundry bool = false
+
 /* -------------------------------------------------------------------------- */
 /*                                  VARIABLES                                 */
 /* -------------------------------------------------------------------------- */
@@ -112,9 +135,6 @@ var tags = union(
   extraTags
 )
 
-@description('Azure OpenAI API Version')
-var azureOpenAiApiVersion = '2024-12-01-preview'
-
 // Variables for AI Search index names and configurations
 var aiSearchCioIndexName = 'cio-index'
 var aiSearchFundsIndexName = 'funds-index'
@@ -136,7 +156,6 @@ var _storageAccountName = take(
   '${abbreviations.storageStorageAccounts}${alphaNumericEnvironmentName}${resourceToken}',
   24
 )
-var _azureOpenAiName = take('${abbreviations.cognitiveServicesOpenAI}${alphaNumericEnvironmentName}', 63)
 var _aiHubName = take('${abbreviations.aiPortalHub}${environmentName}', 260)
 var _aiProjectName = take('${abbreviations.aiPortalProject}${environmentName}', 260)
 var _aiSearchServiceName = take('${abbreviations.searchSearchServices}${environmentName}', 260)
@@ -164,7 +183,7 @@ var _backendContainerAppName = !empty(backendContainerAppName)
 
 /* -------------------------------- AI Infra  ------------------------------- */
 
-module hub 'modules/ai/hub.bicep' = {
+module hub 'modules/ai/hub.bicep' = if (useFoundry) {
   name: 'hub'
   params: {
     location: location
@@ -175,7 +194,7 @@ module hub 'modules/ai/hub.bicep' = {
     storageAccountId: storageAccount.outputs.resourceId
     containerRegistryId: containerRegistry.outputs.resourceId
     applicationInsightsId: appInsightsComponent.outputs.resourceId
-    openAiName: azureOpenAi.outputs.name
+    openAiName: '' // Not deploying OpenAI, user-provided
     openAiConnectionName: 'aoai-connection'
     openAiContentSafetyConnectionName: 'aoai-content-safety-connection'
     aiSearchName: searchService.outputs.name
@@ -183,14 +202,14 @@ module hub 'modules/ai/hub.bicep' = {
   }
 }
 
-module project 'modules/ai/project.bicep' = {
+module project 'modules/ai/project.bicep' = if (useFoundry) {
   name: 'project'
   params: {
     location: location
     tags: tags
     name: _aiProjectName
     displayName: _aiProjectName
-    hubName: hub.outputs.name
+    hubName: useFoundry ? hub.outputs.name : ''
   }
 }
 
@@ -286,104 +305,6 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.15.0' = {
               principalType: 'ServicePrincipal'
             }
       ]
-  }
-}
-
-// Also rerefernced in the outputs with the sequential index
-// order of the model definitions is important
-param embedModel string = 'text-embedding-3-large'
-var deployments = [
-     {
-        name: 'gpt-4o-2024-11-20'
-        sku: {
-          name: 'GlobalStandard'
-          capacity: 40
-        }
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o'
-          version: '2024-11-20'
-        }
-        versionUpgradeOption: 'OnceCurrentVersionExpired'
-      }
-      {
-        name: embedModel
-        model: {
-          format: 'OpenAI'
-          name: embedModel
-          version: '1'
-        }
-        sku: { 
-          name: 'Standard' 
-          capacity: 50 }
-      }
-    ]
-
-module azureOpenAi 'modules/ai/cognitiveservices.bicep' = {
-  name: 'cognitiveServices'
-  params: {
-    location: location
-    tags: tags
-    name: _azureOpenAiName
-    kind: 'AIServices'
-    customSubDomainName: _azureOpenAiName
-    deployments:  deployments
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
-        principalId: backendIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI Contributor'
-        principalId: azurePrincipalId
-      }
-    ]
-  }
-}
-
-// TEMP SOLUTION : Used for data load only.
-// TODO: switch the data load script to the SDK that supports cognitive services domain
-var embeddingDeployments = [
-      {
-        name: embedModel
-        model: {
-          format: 'OpenAI'
-          name: embedModel
-          version: '1'
-        }
-        sku: { 
-          name: 'Standard' 
-          capacity: 50 }
-      }
-    ]
-
-module openAiEmbeddings 'br/public:avm/res/cognitive-services/account:0.8.0' = {
-  name: 'openai-dataload-embeddings'
-  scope: resourceGroup()
-  params: {
-    name: 'oai-load-${resourceToken}'
-    location: location
-    kind: 'OpenAI'
-    customSubDomainName: 'oai-load-${resourceToken}'
-    sku: 'S0'
-    deployments: embeddingDeployments
-    disableLocalAuth: false
-    publicNetworkAccess: 'Enabled'
-    networkAcls: {}
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
-        principalId: searchIdentity.properties.principalId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
-        principalId: azurePrincipalId
-        principalType: 'User'
-      }
-    ]
   }
 }
 
@@ -761,9 +682,15 @@ module backendApp 'modules/app/container-apps.bicep' = {
 
       // Required for managed identity
       AZURE_CLIENT_ID: backendIdentity.outputs.clientId
-      AZURE_OPENAI_ENDPOINT: azureOpenAi.outputs.endpoint
-      AZURE_OPENAI_DEPLOYMENT_NAME: deployments[0].name
-      AZURE_OPENAI_API_VERSION: azureOpenAiApiVersion
+      AZURE_OPENAI_ENDPOINT: openAiEndpoint
+      AZURE_OPENAI_DEPLOYMENT_NAME: openAiDeploymentName
+      AZURE_OPENAI_API_VERSION: openAiApiVersion
+      AZURE_OPENAI_KEY: openAiKey
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT: openAiEmbeddingDeployment
+      
+      // Foundry Configuration
+      USE_FOUNDRY: string(useFoundry)
+      PROJECT_ENDPOINT: useFoundry ? 'https://${project.outputs.endpoint}' : ''
 
       // OLD TO BE MIGRATED
       AI_SEARCH_CIO_INDEX_NAME: aiSearchCioIndexName
@@ -852,17 +779,14 @@ output AZURE_PRINCIPAL_ID string = azurePrincipalId
 @description('Application registration client ID')
 output AZURE_CLIENT_APP_ID string = authClientId
 
-@description('Azure OpenAI name')
-output AZURE_OPENAI_NAME string = azureOpenAi.outputs.name
-
 @description('Azure OpenAI endpoint')
-output AZURE_OPENAI_ENDPOINT string = azureOpenAi.outputs.endpoint
+output AZURE_OPENAI_ENDPOINT string = openAiEndpoint
 
-@description('Azure OpenAI Core Model Deployment Name')
-output AZURE_OPENAI_DEPLOYMENT_NAME string = deployments[0].name
+@description('Azure OpenAI deployment name')
+output AZURE_OPENAI_DEPLOYMENT_NAME string = openAiDeploymentName
 
-@description('Azure OpenAI Core Model Deployment Name')
-output AZURE_OPENAI_API_VERSION string = azureOpenAiApiVersion
+@description('Azure OpenAI API Version')
+output AZURE_OPENAI_API_VERSION string = openAiApiVersion
 
 @description('Application Insights name')
 output AZURE_APPLICATION_INSIGHTS_NAME string = appInsightsComponent.outputs.name
@@ -886,9 +810,9 @@ output AI_SEARCH_ENDPOINT string = 'https://${searchService.outputs.name}.search
 output AI_SEARCH_PRINCIPAL_ID string = searchIdentity.properties.principalId
 output AI_SEARCH_IDENTITY_ID string = searchIdentity.id
 
-output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = embeddingDeployments[0].name
-output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingDeployments[0].model.name
-output AZURE_OPENAI_EMBEDDING_ENDPOINT string = openAiEmbeddings.outputs.endpoint
+output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = openAiEmbeddingDeployment
+output AZURE_OPENAI_EMBEDDING_MODEL string = openAiEmbeddingDeployment
+output AZURE_OPENAI_EMBEDDING_ENDPOINT string = openAiEndpoint
 
 // Must match the index names created automatically by postdeploy
 output AI_SEARCH_CIO_INDEX_NAME string = aiSearchCioIndexName
@@ -901,3 +825,15 @@ output AZURE_STORAGE_ACCOUNT_ENDPOINT string = storageAccount.outputs.primaryBlo
 @description('Semantic Kernel Diagnostics')
 output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS bool = true
 output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE bool = true
+
+@description('Whether Azure AI Foundry is enabled')
+output USE_FOUNDRY bool = useFoundry
+
+@description('Azure AI Foundry Project endpoint (if enabled)')
+output PROJECT_ENDPOINT string = useFoundry ? 'https://${project.outputs.endpoint}' : ''
+
+@description('Azure AI Foundry Hub name (if enabled)')
+output AZURE_AI_HUB_NAME string = useFoundry ? hub.outputs.name : ''
+
+@description('Azure AI Foundry Project name (if enabled)')
+output AZURE_AI_PROJECT_NAME string = useFoundry ? project.outputs.name : ''
