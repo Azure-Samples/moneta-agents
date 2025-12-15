@@ -25,7 +25,7 @@ Moneta supports two agent hosting modes:
 
 | Mode | Description | Command |
 |------|-------------|--------|
-| **Azure OpenAI** (default) | Agents run in-memory using `AzureOpenAIChatClient`. Fast startup, no persistence. | `python -m foundry.orchestrators.foundry_banking_orchestrator` |
+| **Azure OpenAI** (default) | Agents run in-memory using `AzureOpenAIChatClient`. Fast startup, no persistence. | `python -m foundry.orchestrators.open_ai_banking_orchestrator` |
 | **Azure AI Foundry** (optional) | Agents are persisted to Azure AI Foundry with versioning. Visible in Foundry UI. | `python -m foundry.orchestrators.foundry_banking_orchestrator --foundry --new` |
 
 Use the ENV variable USE_FOUNDRY= True or False
@@ -55,13 +55,13 @@ The following screenshots demonstrate the agents running:
 
 ![Moneta Frontend](src/backend/testing/Screenshot%202025-12-10%20110948.png)
 
-This screenshot shows the `ins-coordinator` agent performing intent recognition and invoking the appropriate sub-agents. 
+This screenshot shows the `bank-coordinator` agent performing intent recognition and invoking the appropriate sub-agents. 
 
 #### Tracing - Full Agent Flow
 
 ![Tracing Handoff](src/backend/testing/Screenshot%202025-12-10%20111045.png)
 
-This screenshot shows the **specialist agent's response** in the trace in Application Insights. After the handoff, the `ins-crm-agent` executes its tools (like `get_customer_insurance_data`) to fetch John Doe's policy information and returns the response. The trace captures the entire conversation flow, tool executions, and the final response sent back to the user.
+This screenshot shows the **specialist agent's response** in the trace in Application Insights. After the handoff, the `ins-policies-agent` executes its tools to fetch the response. The trace captures the entire conversation flow, tool executions, and the final response sent back to the user.
 
 #### Tracing - AI Foundry (new)
 
@@ -86,7 +86,7 @@ This screenshot shows the **orchestrator banking agent** in the Monitor section 
 - Multi-Use Case Support: Switch between insurance and banking use cases
 - Agent Collaboration: Coordinator routes to specialists who collaborate to provide answers
 - Azure AD Authentication: Secure login with Microsoft Azure Active Directory
-- Conversation History: Access and continue previous conversations with full context
+- Conversation History: Access and continue previous conversations with full context (long term memory)
 
 ## Implementation Details
 - Python 3.12 or higher
@@ -98,7 +98,7 @@ This screenshot shows the **orchestrator banking agent** in the Monitor section 
 - Microsoft Authentication Library (MSAL - if using authentication - optional)
 - Azure AD application registration (if using authentication - optional)
 - An Azure Container App hosting backend API endpoint
-- CosmosDB to store user conversations and history
+- CosmosDB to store user conversations and history (Third-party Agent Memory approach, not managed by the Framework)
 - Azure Application Insights for OpenTelemetry tracing
 
 ## Use Cases
@@ -147,8 +147,10 @@ All agents can optionally be persisted to **Azure AI Foundry** with automatic ve
         - agent_management.py # Agent CRUD operations for Foundry
         - tool_schema_utils.py # Utilities for tool schema generation
       - orchestrators
-        - foundry_banking_orchestrator.py # Banking orchestrator with HandoffBuilder
-        - foundry_insurance_orchestrator.py # Insurance orchestrator with HandoffBuilder
+        - foundry_banking_orchestrator.py
+        - foundry_insurance_orchestrator.py 
+        - open_ai_banking_orchestrator.py
+        - open_ai_insurance_orchestrator.py
     - app.py # FastAPI backend exposing API
 
   - frontend
@@ -250,11 +252,11 @@ To run locally:
 
 mind the sample.env file - by default the application will try to read AZD environment configuration and falls on .env only when it does not find one.
 
-**Key Environment Variables for Agent Framework:**
+**Key Environment Variables for Foundry:**
 ```shell
 PROJECT_ENDPOINT=https://your-foundry-project.services.ai.azure.com/api/projects/your-project
-MODEL_DEPLOYMENT_NAME=gpt-4o-mini
-HANDLER_TYPE=foundry_banking
+MODEL_DEPLOYMENT_NAME=gpt-4.1-mini
+USE_FOUNDRY=True
 APPLICATIONINSIGHTS_CONNECTION_STRING=your-connection-string
 ```
 
