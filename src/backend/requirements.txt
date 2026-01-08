@@ -561,7 +561,7 @@ typing-inspection==0.4.2
     #   pydantic
 tzdata==2025.2
     # via pandas
-urllib3==2.6.1
+urllib3==2.6.3
     # via
     #   moneta-backend (pyproject.toml)
     #   pyppeteer
