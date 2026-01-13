@@ -52,8 +52,8 @@ export function MessageComponent({ message, agents }: MessageComponentProps) {
         className={cn(
           "flex-1 max-w-[85%] rounded-2xl px-5 py-4 shadow-sm transition-all",
           isUser
-            ? "bg-gradient-to-br from-primary to-blue-600 text-primary-foreground shadow-lg shadow-primary/20"
-            : "bg-card/80 backdrop-blur-sm border border-border/50"
+            ? "bg-gradient-to-br from-primary to-blue-600 text-white shadow-lg shadow-primary/20"
+            : "bg-card border border-border/50 text-card-foreground"
         )}
         style={
           agent && !isUser
@@ -64,13 +64,13 @@ export function MessageComponent({ message, agents }: MessageComponentProps) {
         {agent && !isUser && (
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">{agent.emoji}</span>
-            <span className="text-sm font-semibold">{message.name}</span>
+            <span className="text-sm font-semibold text-foreground">{message.name}</span>
           </div>
         )}
         <div
           className={cn(
-            "markdown-content prose prose-sm max-w-none dark:prose-invert",
-            isUser && "prose-invert"
+            "markdown-content prose prose-sm max-w-none",
+            isUser ? "prose-invert" : "dark:prose-invert prose-slate"
           )}
         >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>

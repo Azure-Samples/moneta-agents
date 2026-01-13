@@ -228,7 +228,7 @@ export function ChatArea({
         <div className="max-w-4xl mx-auto space-y-3">
           {/* Predefined Questions */}
           <Select value={selectedQuestion} onValueChange={handleQuestionSelect}>
-            <SelectTrigger className="w-full bg-muted/50 border-muted hover:bg-muted transition-colors">
+            <SelectTrigger className="w-full bg-muted border-border hover:bg-accent transition-colors">
               <SelectValue placeholder="💡 Select a predefined question or type your own below" />
             </SelectTrigger>
             <SelectContent>
@@ -242,7 +242,7 @@ export function ChatArea({
 
           {/* Message Input with Deep Research Toggle */}
           <div className="relative">
-            <div className="flex items-end gap-2 p-2 bg-muted/30 rounded-2xl border border-border/50 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+            <div className="flex items-end gap-2 p-2 bg-card rounded-2xl border border-border focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
               {/* Deep Research Toggle */}
               <div className="flex-shrink-0 pb-1">
                 {deepResearchLocked ? (
@@ -280,7 +280,7 @@ export function ChatArea({
                 placeholder="Ask Moneta anything..."
                 disabled={isLoading}
                 rows={1}
-                className="flex-1 bg-transparent border-0 resize-none focus:outline-none focus:ring-0 text-sm py-2 px-2 max-h-[150px] placeholder:text-muted-foreground/60"
+                className="flex-1 bg-transparent border-0 resize-none focus:outline-none focus:ring-0 text-sm py-2 px-2 max-h-[150px] placeholder:text-muted-foreground text-foreground"
               />
 
               {/* Send Button */}

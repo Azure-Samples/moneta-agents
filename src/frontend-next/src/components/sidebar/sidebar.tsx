@@ -64,13 +64,13 @@ export function Sidebar({
     <TooltipProvider>
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-80 bg-card/95 backdrop-blur-xl border-r border-border/50 transform transition-transform duration-300 ease-out md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-80 bg-card backdrop-blur-xl border-r border-border transform transition-transform duration-300 ease-out md:relative md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-5 border-b border-border/50">
+          <div className="p-5 border-b border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20">
@@ -95,19 +95,19 @@ export function Sidebar({
                 </Button>
               </div>
             </div>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white text-sm font-medium">
                 {displayName.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{displayName}</p>
+                <p className="text-sm font-medium truncate text-foreground">{displayName}</p>
                 <p className="text-xs text-muted-foreground">Advisor</p>
               </div>
             </div>
           </div>
 
           {/* Use Case Selector */}
-          <div className="p-4 border-b border-border/50">
+          <div className="p-4 border-b border-border">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
               Industry
             </label>
@@ -115,7 +115,7 @@ export function Sidebar({
               value={useCase}
               onValueChange={(value) => onUseCaseChange(value as UseCase)}
             >
-              <SelectTrigger className="bg-muted/50 border-0 hover:bg-muted transition-colors">
+              <SelectTrigger className="bg-muted border-border hover:bg-accent transition-colors">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -136,7 +136,7 @@ export function Sidebar({
           </div>
 
           {/* Agents Online */}
-          <div className="p-4 border-b border-border/50">
+          <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Active Agents
@@ -239,7 +239,7 @@ export function Sidebar({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-border/50">
+          <div className="p-4 border-t border-border">
             <a
               href="/.auth/logout"
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
