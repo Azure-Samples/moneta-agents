@@ -1,0 +1,9 @@
+{
+  "name": "Moneta",
+  "short_name": "Moneta",
+  "description": "Empowering Advisors with AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#3b82f6"
+}

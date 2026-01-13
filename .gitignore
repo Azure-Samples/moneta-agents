@@ -144,3 +144,15 @@ travel_question_bank_answered_best_small.csv
 .azure
 
 .vscode/
+
+# Node.js / Next.js
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

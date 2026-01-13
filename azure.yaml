@@ -9,8 +9,8 @@ services:
       path: ./Dockerfile
       remoteBuild: true
   frontend:
-    language: python
-    project: src/frontend
+    language: js
+    project: src/frontend-next
     host: containerapp
     docker:
       path: ./Dockerfile
