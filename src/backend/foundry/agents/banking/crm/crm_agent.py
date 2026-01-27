@@ -41,7 +41,7 @@ async def create_crm_agent(chat_client: AzureOpenAIChatClient) -> ChatAgent:
 - Focus on the specific data requested (e.g., portfolio performance, contact details, investment profile, etc.)"""
     
     # Create agent with CRM tools
-    agent = chat_client.create_agent(
+    agent = chat_client.as_agent(
         instructions=instructions,
         name="crm_agent",
         tools=crm_functions

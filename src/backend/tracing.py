@@ -1,7 +1,7 @@
 """
 Consolidated tracing setup for Azure AI Foundry.
 
-Uses Agent Framework's setup_observability for proper span nesting.
+Uses Agent Framework's configure_otel_providers for proper span nesting.
 Sends traces to Azure Application Insights connected to Foundry project.
 
 Foundry UI requires specific OpenTelemetry GenAI semantic conventions:
@@ -65,7 +65,7 @@ def setup_tracing(
     service_name: str = "moneta-agents"
 ) -> bool:
     """
-    Configure tracing using Agent Framework's setup_observability.
+    Configure tracing using Agent Framework's configure_otel_providers.
     
     This ensures proper span nesting for:
     - invoke_agent spans
@@ -91,17 +91,21 @@ def setup_tracing(
         return False
     
     try:
-        # Use Agent Framework's built-in observability setup
+        # Use Agent Framework's configure_otel_providers with Azure Monitor exporter
         # This properly instruments agent spans with parent-child relationships
-        from agent_framework.observability import setup_observability
+        from agent_framework.observability import configure_otel_providers
+        from azure.monitor.opentelemetry.exporter import AzureMonitorTraceExporter
         
-        setup_observability(
+        # Create Azure Monitor exporter
+        azure_exporter = AzureMonitorTraceExporter(connection_string=conn_str)
+        
+        configure_otel_providers(
             enable_sensitive_data=True,  # Include prompts/responses in traces
-            applicationinsights_connection_string=conn_str
+            exporters=[azure_exporter]
         )
         
         _TRACING_CONFIGURED = True
-        print(f"✅ Tracing configured via Agent Framework setup_observability")
+        print(f"✅ Tracing configured via Agent Framework configure_otel_providers")
         print(f"   - Application Insights: configured (Foundry-connected)")
         print(f"   - Sensitive data recording: enabled")
         return True

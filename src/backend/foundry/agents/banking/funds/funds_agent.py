@@ -38,7 +38,7 @@ async def create_funds_agent(chat_client: AzureOpenAIChatClient) -> ChatAgent:
 - Focus on fund objectives, performance metrics, risk profiles, and investment strategies"""
     
     # Create agent with Funds tools
-    agent = chat_client.create_agent(
+    agent = chat_client.as_agent(
         instructions=instructions,
         name="funds_agent",
         tools=funds_functions

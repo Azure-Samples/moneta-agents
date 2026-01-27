@@ -5,13 +5,19 @@ description = "Backend propject steup for Moneta"
 readme = "README.md"
 requires-python = ">=3.12, <3.13"
 dependencies = [
-    # Agent framework
-    "agent-framework[azure]>=1.0.0b251204",
+    # Agent framework - core and Azure AI packages
+    "agent-framework>=1.0.0b260116",
+    "agent-framework-azure-ai>=1.0.0b260116",
+    "agent-framework-azure-ai-search>=1.0.0b260116",  # Override broken 0.0.0a1 from [all] extra
+    "azure-ai-agents>=1.2.0b5",
 
     # Azure dependencies
     "azure-identity>=1.21.0",
     "azure-ai-inference>=1.0.0b9",
+    "azure-ai-projects>=2.0.0b3",
     "python-dotenv>=1.0.1",
+    "azure-ai-documentintelligence>=1.0.2",
+    "azure-cosmos>=4.9.0",
 
     # Search integration
     "azure-search-documents>=11.6.0",
@@ -30,7 +36,6 @@ dependencies = [
     "opentelemetry-exporter-otlp>=1.29.0",
 
     # Other dependencies
-    "azure-cosmos>=4.9.0",
     "requests>=2.32.4",
     "pyyaml>=6.0.2",
     "fastapi>=0.115.12",
@@ -45,3 +50,5 @@ dependencies = [
     "urllib3>=2.6.0",
     "werkzeug>=3.1.4"
 ]
+[tool.uv]
+prerelease = "allow"

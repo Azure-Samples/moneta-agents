@@ -49,7 +49,7 @@ async def create_crm_insurance_agent(chat_client: AzureOpenAIChatClient) -> Chat
   * Summary of all active policies for a client"""
     
     # Create agent with Insurance CRM tools
-    agent = chat_client.create_agent(
+    agent = chat_client.as_agent(
         instructions=instructions,
         name="crm_insurance_agent",
         tools=crm_insurance_functions

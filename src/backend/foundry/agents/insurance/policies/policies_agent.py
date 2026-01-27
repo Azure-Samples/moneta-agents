@@ -41,7 +41,7 @@ async def create_policies_agent(chat_client: AzureOpenAIChatClient) -> ChatAgent
 - Focus on policy coverage details, benefits, exclusions, and recommendations based on the search results"""
     
     # Create agent with insurance policies tools
-    agent = chat_client.create_agent(
+    agent = chat_client.as_agent(
         instructions=instructions,
         name="policies_agent",
         tools=policies_functions

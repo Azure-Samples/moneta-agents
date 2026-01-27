@@ -27,7 +27,8 @@ from agent_framework import (
     HandoffBuilder,
     RequestInfoEvent,
     WorkflowOutputEvent,
-    WorkflowEvent
+    WorkflowEvent,
+    ExecutorCompletedEvent
 )
 from agent_framework._workflows._events import AgentRunEvent
 from agent_framework.azure import AzureAIAgentClient, AzureAIClient
@@ -142,14 +143,13 @@ class FoundryInsuranceOrchestrator:
             use_latest_version=True
         )
         
-        # Build the handoff workflow with auto-registered handoff tools
+        # Build the handoff workflow
         self._workflow = (
             HandoffBuilder(
                 name="moneta_insurance_handoff",
                 participants=[coordinator, crm_agent, policies_agent],
             )
-            .set_coordinator(coordinator)
-            .auto_register_handoff_tools(True)
+            .with_start_agent(coordinator)
             .with_termination_condition(
                 lambda conv: sum(1 for msg in conv if msg.role.value == "user") >= 10
             )
@@ -233,28 +233,18 @@ class FoundryInsuranceOrchestrator:
                 
                 async for event in self._workflow.run_stream(chat_messages):
                     if isinstance(event, RequestInfoEvent):
-                        self.logger.debug(f"RequestInfoEvent: source={event.source_executor_id}, data type={type(event.data).__name__}")
-                        if hasattr(event.data, 'conversation') and event.data.conversation:
-                            for msg in reversed(event.data.conversation):
-                                if hasattr(msg, 'role') and msg.role.value == 'assistant':
-                                    if hasattr(msg, 'text') and msg.text:
-                                        final_response = msg.text
-                                        responding_agent = getattr(msg, 'author_name', None) or getattr(event.data, 'awaiting_agent_id', 'coordinator')
-                                        self.logger.info(f"Captured response from '{responding_agent}': {len(final_response)} chars")
-                                        break
+                        # Handle HandoffAgentUserRequest with agent_response
+                        if hasattr(event.data, 'agent_response') and event.data.agent_response:
+                            agent_response = event.data.agent_response
+                            if hasattr(agent_response, 'text') and agent_response.text:
+                                final_response = agent_response.text
+                                responding_agent = event.source_executor_id or "ins-coordinator"
                     
-                    elif isinstance(event, AgentRunEvent):
-                        if event.data and event.data.text:
-                            final_response = event.data.text
-                            responding_agent = event.executor_id or "ins-coordinator"
-                            self.logger.info(f"Captured from AgentRunEvent '{responding_agent}': {len(final_response)} chars")
-                    
-                    elif isinstance(event, WorkflowOutputEvent):
-                        if hasattr(event, 'data'):
+                    elif isinstance(event, ExecutorCompletedEvent):
+                        if event.data is not None:
                             if hasattr(event.data, 'text') and event.data.text:
                                 final_response = event.data.text
-                                responding_agent = getattr(event, 'source_executor_id', 'coordinator')
-                                self.logger.info(f"Captured from WorkflowOutputEvent: {len(final_response)} chars")
+                                responding_agent = event.executor_id or "ins-coordinator"
                 
                 self.logger.info(f"Final response: {len(final_response)} chars from '{responding_agent}'")
                 
@@ -338,12 +328,8 @@ async def create_persistent_foundry_agents(
             tools = None
             tool_schemas = None
             
-            if agent_key == "ins-coordinator":
-                from foundry.agents.tool_schema_utils import create_handoff_tool_schemas, create_handoff_tools
-                tool_schemas = create_handoff_tool_schemas(specialist_agent_names)
-                tools = create_handoff_tools(specialist_agent_names)
-                print(f"   📦 {agent_key}: Registering {len(tool_schemas)} handoff tools with Foundry")
-            elif agent_key == "ins-crm-agent":
+            # Coordinator gets no tools here - HandoffBuilder will add handoff tools automatically
+            if agent_key == "ins-crm-agent":
                 tools = crm_insurance_functions
                 tool_schemas = functions_to_tool_schemas(crm_insurance_functions)
             elif agent_key == "ins-policies-agent":
@@ -364,13 +350,12 @@ async def create_persistent_foundry_agents(
             client = AzureAIClient(
                 project_endpoint=project_endpoint,
                 model_deployment_name=model_deployment_name,
-                async_credential=credential,
+                credential=credential,
                 agent_name=agent_name,
-                use_latest_version=True,
-                should_cleanup_agent=False
+                use_latest_version=True
             )
             
-            agent = client.create_agent(
+            agent = client.as_agent(
                 name=agent_key,
                 instructions=agent_def["instructions"],
                 tools=tools
@@ -418,11 +403,8 @@ async def create_foundry_agents(
         agent_def = AGENT_DEFINITIONS[agent_key]
         tools = None
         
-        if agent_key == "ins-coordinator":
-            from foundry.agents.tool_schema_utils import create_handoff_tools
-            tools = create_handoff_tools(specialist_agent_names)
-            print(f"   📦 {agent_key}: Binding {len(tools)} handoff tools locally")
-        elif agent_key == "ins-crm-agent":
+        # Coordinator gets no tools here - HandoffBuilder will add handoff tools automatically
+        if agent_key == "ins-crm-agent":
             tools = crm_insurance_functions
         elif agent_key == "ins-policies-agent":
             tools = policies_functions
@@ -432,14 +414,13 @@ async def create_foundry_agents(
         client = AzureAIClient(
             project_endpoint=project_endpoint,
             model_deployment_name=model_deployment_name,
-            async_credential=credential,
+            credential=credential,
             agent_name=agent_name,
             agent_version=agent_version if not use_latest_version else None,
-            use_latest_version=use_latest_version and not force_new_version,
-            should_cleanup_agent=False
+            use_latest_version=use_latest_version and not force_new_version
         )
         
-        agent = client.create_agent(
+        agent = client.as_agent(
             name=agent_key,
             instructions=agent_def["instructions"],
             tools=tools
@@ -569,8 +550,7 @@ async def run_workflow(
             name="moneta_insurance_handoff",
             participants=[coordinator, crm_agent, policies_agent],
         )
-        .set_coordinator(coordinator)
-        .auto_register_handoff_tools(True)
+        .with_start_agent(coordinator)
         .with_termination_condition(
             lambda conv: sum(1 for msg in conv if msg.role.value == "user") >= 10
         )

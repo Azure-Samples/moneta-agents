@@ -27,11 +27,12 @@ from agent_framework import (
     HandoffBuilder,
     RequestInfoEvent,
     WorkflowOutputEvent,
-    WorkflowEvent
+    WorkflowEvent,
+    ExecutorCompletedEvent
 )
 from agent_framework._workflows._events import AgentRunEvent
 from agent_framework.azure import AzureOpenAIChatClient
-from azure.identity import DefaultAzureCredential
+from azure.identity.aio import AzureCliCredential
 
 # Import specialist agent functions from insurance agents subfolder
 from foundry.agents.insurance.crm.crm_insurance_functions import crm_insurance_functions
@@ -108,12 +109,13 @@ class OpenAIInsuranceOrchestrator:
         # Configuration from environment
         self.openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
         self.openai_deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
-        self.openai_key = os.getenv("AZURE_OPENAI_KEY")
 
     async def _ensure_initialized(self):
         """Lazily initialize the workflow and agents."""
         if self._initialized:
             return
+        
+        credential = AzureCliCredential()
         
         # Azure OpenAI mode - use in-memory agents
         if not self.openai_endpoint:
@@ -121,32 +123,21 @@ class OpenAIInsuranceOrchestrator:
                 "AZURE_OPENAI_ENDPOINT is required for Azure OpenAI mode."
             )
         
-        # Use API key if provided, otherwise fall back to Managed Identity
-        if self.openai_key:
-            self.logger.info(f"Using Azure OpenAI endpoint with API key: {self.openai_endpoint}")
-            chat_client = AzureOpenAIChatClient(
-                endpoint=self.openai_endpoint,
-                deployment_name=self.openai_deployment_name,
-                api_key=self.openai_key
-            )
-        else:
-            self.logger.info(f"Using Azure OpenAI endpoint with Managed Identity: {self.openai_endpoint}")
-            credential = DefaultAzureCredential()
-            chat_client = AzureOpenAIChatClient(
-                endpoint=self.openai_endpoint,
-                deployment_name=self.openai_deployment_name,
-                credential=credential
-            )
+        self.logger.info(f"Using Azure OpenAI endpoint for workflow: {self.openai_endpoint}")
+        chat_client = AzureOpenAIChatClient(
+            endpoint=self.openai_endpoint,
+            deployment_name=self.openai_deployment_name,
+            credential=credential
+        )
         coordinator, crm_agent, policies_agent = create_specialist_agents(chat_client)
         
-        # Build the handoff workflow with auto-registered handoff tools
+        # Build the handoff workflow
         self._workflow = (
             HandoffBuilder(
                 name="moneta_insurance_handoff",
                 participants=[coordinator, crm_agent, policies_agent],
             )
-            .set_coordinator(coordinator)
-            .auto_register_handoff_tools(True)
+            .with_start_agent(coordinator)
             .with_termination_condition(
                 lambda conv: sum(1 for msg in conv if msg.role.value == "user") >= 10
             )
@@ -229,28 +220,18 @@ class OpenAIInsuranceOrchestrator:
                 
                 async for event in self._workflow.run_stream(chat_messages):
                     if isinstance(event, RequestInfoEvent):
-                        self.logger.debug(f"RequestInfoEvent: source={event.source_executor_id}, data type={type(event.data).__name__}")
-                        if hasattr(event.data, 'conversation') and event.data.conversation:
-                            for msg in reversed(event.data.conversation):
-                                if hasattr(msg, 'role') and msg.role.value == 'assistant':
-                                    if hasattr(msg, 'text') and msg.text:
-                                        final_response = msg.text
-                                        responding_agent = getattr(msg, 'author_name', None) or getattr(event.data, 'awaiting_agent_id', 'coordinator')
-                                        self.logger.info(f"Captured response from '{responding_agent}': {len(final_response)} chars")
-                                        break
+                        # Handle HandoffAgentUserRequest with agent_response
+                        if hasattr(event.data, 'agent_response') and event.data.agent_response:
+                            agent_response = event.data.agent_response
+                            if hasattr(agent_response, 'text') and agent_response.text:
+                                final_response = agent_response.text
+                                responding_agent = event.source_executor_id or "ins-coordinator"
                     
-                    elif isinstance(event, AgentRunEvent):
-                        if event.data and event.data.text:
-                            final_response = event.data.text
-                            responding_agent = event.executor_id or "ins-coordinator"
-                            self.logger.info(f"Captured from AgentRunEvent '{responding_agent}': {len(final_response)} chars")
-                    
-                    elif isinstance(event, WorkflowOutputEvent):
-                        if hasattr(event, 'data'):
+                    elif isinstance(event, ExecutorCompletedEvent):
+                        if event.data is not None:
                             if hasattr(event.data, 'text') and event.data.text:
                                 final_response = event.data.text
-                                responding_agent = getattr(event, 'source_executor_id', 'coordinator')
-                                self.logger.info(f"Captured from WorkflowOutputEvent: {len(final_response)} chars")
+                                responding_agent = event.executor_id or "ins-coordinator"
                 
                 self.logger.info(f"Final response: {len(final_response)} chars from '{responding_agent}'")
                 
@@ -288,18 +269,18 @@ def create_specialist_agents(chat_client: AzureOpenAIChatClient) -> tuple[ChatAg
         Tuple of (coordinator, crm_agent, policies_agent)
     """
     
-    coordinator = chat_client.create_agent(
+    coordinator = chat_client.as_agent(
         instructions=AGENT_DEFINITIONS["ins-coordinator"]["instructions"],
         name="ins-coordinator"
     )
     
-    crm_agent = chat_client.create_agent(
+    crm_agent = chat_client.as_agent(
         instructions=AGENT_DEFINITIONS["ins-crm-agent"]["instructions"],
         name="ins-crm-agent",
         tools=crm_insurance_functions
     )
     
-    policies_agent = chat_client.create_agent(
+    policies_agent = chat_client.as_agent(
         instructions=AGENT_DEFINITIONS["ins-policies-agent"]["instructions"],
         name="ins-policies-agent",
         tools=policies_functions
@@ -364,16 +345,16 @@ async def main():
         return
     
     try:
-        credential = DefaultAzureCredential()
-        chat_client = AzureOpenAIChatClient(
-            endpoint=endpoint,
-            deployment_name=deployment_name,
-            credential=credential
-        )
-        
-        coordinator, crm_agent, policies_agent = create_specialist_agents(chat_client)
-        
-        await run_workflow(coordinator, crm_agent, policies_agent)
+        async with AzureCliCredential() as credential:
+            chat_client = AzureOpenAIChatClient(
+                endpoint=endpoint,
+                deployment_name=deployment_name,
+                credential=credential
+            )
+            
+            coordinator, crm_agent, policies_agent = create_specialist_agents(chat_client)
+            
+            await run_workflow(coordinator, crm_agent, policies_agent)
     
     except Exception as e:
         print(f"❌ Failed to initialize orchestrator: {str(e)}")
@@ -399,8 +380,7 @@ async def run_workflow(
             name="moneta_insurance_handoff",
             participants=[coordinator, crm_agent, policies_agent],
         )
-        .set_coordinator(coordinator)
-        .auto_register_handoff_tools(True)
+        .with_start_agent(coordinator)
         .with_termination_condition(
             lambda conv: sum(1 for msg in conv if msg.role.value == "user") >= 10
         )

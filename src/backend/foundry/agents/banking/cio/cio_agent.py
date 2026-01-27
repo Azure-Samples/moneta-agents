@@ -38,7 +38,7 @@ async def create_cio_agent(chat_client: AzureOpenAIChatClient) -> ChatAgent:
 - Focus on strategic asset allocation, market trends, and investment opportunities"""
     
     # Create agent with CIO tools
-    agent = chat_client.create_agent(
+    agent = chat_client.as_agent(
         instructions=instructions,
         name="cio_agent",
         tools=cio_functions
