@@ -38,13 +38,27 @@ class DeepResearchOrchestrator:
     
         endpoint_name = os.getenv("AZURE_OPENAI_ENDPOINT")
         deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
-        credential = aio_identity.DefaultAzureCredential()
-        llm_client = aio_inference.ChatCompletionsClient(
-            endpoint=f"{endpoint_name.strip('/')}/openai/deployments/{deployment_name}",
-            credential=credential,
-            credential_scopes=["https://cognitiveservices.azure.com/.default"],
-        )
-        logger.info("Azure OpenAI LLM client initialized.")
+        api_key = os.getenv("AZURE_OPENAI_KEY")
+        
+        endpoint_url = f"{endpoint_name.strip('/')}/openai/deployments/{deployment_name}"
+        
+        # Use API key if provided, otherwise fall back to DefaultAzureCredential
+        if api_key:
+            from azure.core.credentials import AzureKeyCredential
+            llm_client = aio_inference.ChatCompletionsClient(
+                endpoint=endpoint_url,
+                credential=AzureKeyCredential(api_key),
+            )
+            logger.info("Azure OpenAI LLM client initialized with API key authentication.")
+        else:
+            credential = aio_identity.DefaultAzureCredential()
+            llm_client = aio_inference.ChatCompletionsClient(
+                endpoint=endpoint_url,
+                credential=credential,
+                credential_scopes=["https://cognitiveservices.azure.com/.default"],
+            )
+            logger.info("Azure OpenAI LLM client initialized with DefaultAzureCredential.")
+        
         return llm_client
     
 

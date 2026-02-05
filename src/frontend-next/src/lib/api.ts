@@ -31,7 +31,8 @@ interface ApiConversation {
   messages: ApiMessage[];
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+// Use the Next.js API route which proxies to the backend
+const API_ENDPOINT = "/api/chat";
 
 async function fetchWithError(url: string, options: RequestInit) {
   const response = await fetch(url, options);
@@ -46,7 +47,7 @@ async function fetchWithError(url: string, options: RequestInit) {
 
 export const apiClient = {
   async fetchConversations(params: FetchConversationsParams): Promise<Conversation[]> {
-    const response = await fetchWithError(`${API_BASE_URL}/http_trigger`, {
+    const response = await fetchWithError(API_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -71,7 +72,7 @@ export const apiClient = {
   },
 
   async sendMessage(params: SendMessageParams): Promise<SendMessageResponse> {
-    const response = await fetchWithError(`${API_BASE_URL}/http_trigger`, {
+    const response = await fetchWithError(API_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
