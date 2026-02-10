@@ -388,7 +388,7 @@ propcache==0.4.1
     #   yarl
 proto-plus==1.27.0
     # via google-api-core
-protobuf==5.29.5
+protobuf==5.29.6
     # via
     #   moneta-backend (pyproject.toml)
     #   a2a-sdk
