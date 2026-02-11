@@ -167,7 +167,7 @@ clr-loader==0.2.10
     # via pythonnet
 colorama==0.4.6
     # via griffe
-cryptography==46.0.3
+cryptography==46.0.5
     # via
     #   azure-identity
     #   azure-storage-blob
