@@ -274,7 +274,7 @@ lxml==6.0.2
     # via
     #   lxml-html-clean
     #   pyquery
-lxml-html-clean==0.4.3
+lxml-html-clean==0.4.4
     # via moneta-backend (pyproject.toml)
 markupsafe==3.0.3
     # via
