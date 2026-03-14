@@ -433,7 +433,7 @@ pydantic-settings==2.12.0
     #   mcp
 pyee==13.0.0
     # via pyppeteer
-pyjwt==2.10.1
+pyjwt==2.12.0
     # via
     #   mcp
     #   microsoft-agents-hosting-core
