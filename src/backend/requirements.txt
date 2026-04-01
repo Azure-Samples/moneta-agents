@@ -60,7 +60,7 @@ agent-framework-redis==1.0.0b260116
     # via agent-framework-core
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.3
+aiohttp==3.13.4
     # via
     #   moneta-backend (pyproject.toml)
     #   agent-framework-azure-ai
