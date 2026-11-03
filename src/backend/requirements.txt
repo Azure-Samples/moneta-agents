@@ -332,7 +332,7 @@ numpy==2.4.0rc1
     #   pandas
     #   qdrant-client
     #   redisvl
-oauthlib==3.3.1
+oauthlib==4.0.0
     # via requests-oauthlib
 ollama==0.6.1
     # via agent-framework-ollama
