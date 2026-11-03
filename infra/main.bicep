@@ -52,6 +52,10 @@ param containerRegistryName string = ''
 @description('Name of the container apps environment to deploy. If not specified, a name will be generated. The maximum length is 60 characters.')
 param containerAppsEnvironmentName string = ''
 
+@maxLength(64)
+@description('Name of the virtual network to deploy. If not specified, a name will be generated.')
+param virtualNetworkName string = ''
+
 /* -------------------------------- Frontend -------------------------------- */
 
 @maxLength(32)
@@ -162,6 +166,9 @@ var _aiSearchServiceName = take('${abbreviations.searchSearchServices}${environm
 var _containerAppsEnvironmentName = !empty(containerAppsEnvironmentName)
   ? containerAppsEnvironmentName
   : take('${abbreviations.appManagedEnvironments}${environmentName}', 60)
+var _virtualNetworkName = !empty(virtualNetworkName)
+  ? virtualNetworkName
+  : take('vnet-${environmentName}', 64)
 
 /* ----------------------------- Resource Names ----------------------------- */
 
@@ -180,6 +187,17 @@ var _backendContainerAppName = !empty(backendContainerAppName)
 /* -------------------------------------------------------------------------- */
 /*                                  RESOURCES                                 */
 /* -------------------------------------------------------------------------- */
+
+/* ------------------------------- Networking ------------------------------- */
+
+module virtualNetwork 'modules/network/virtual-network.bicep' = {
+  name: 'virtualNetwork'
+  params: {
+    name: _virtualNetworkName
+    location: location
+    tags: tags
+  }
+}
 
 /* -------------------------------- AI Infra  ------------------------------- */
 
@@ -375,7 +393,7 @@ module appInsightsComponent 'br/public:avm/res/insights/component:0.4.2' = {
 
 /* -------------------------------------------------------------------------- */
 // Cosmos DB Account
-resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
+resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' = {
   name: cosmosDbAccountName
   location: location
   kind: 'GlobalDocumentDB'
@@ -398,8 +416,23 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
     enableFreeTier: false
     enableAnalyticalStorage: false
     cors: []
+    publicNetworkAccess: 'Disabled'
+    networkAclBypass: 'AzureServices'
   }
   tags: tags
+}
+
+// Private Endpoint for Cosmos DB
+module cosmosPrivateEndpoint 'modules/network/cosmos-private-endpoint.bicep' = {
+  name: 'cosmosPrivateEndpoint'
+  params: {
+    name: 'pe-${cosmosDbAccountName}'
+    location: location
+    tags: tags
+    subnetId: virtualNetwork.outputs.privateEndpointsSubnetId
+    cosmosDbAccountId: cosmosDbAccount.id
+    virtualNetworkId: virtualNetwork.outputs.id
+  }
 }
 
 // Cosmos DB Database
@@ -547,6 +580,8 @@ module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.8.1
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     daprAIConnectionString: appInsightsComponent.outputs.connectionString
     zoneRedundant: false
+    infrastructureSubnetId: virtualNetwork.outputs.containerAppsSubnetId
+    internal: false
   }
 }
 

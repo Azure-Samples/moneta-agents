@@ -57,7 +57,7 @@ then
             --id $AZURE_CLIENT_APP_ID \
             --display-name "client-secret" \
             --query password \
-            --years 1 \
+            --end-date "$(date -v+30d +%Y-%m-%d)" \
             --output tsv
     )"
 
@@ -66,6 +66,10 @@ then
         --headers 'Content-Type=application/json' \
         --uri "https://graph.microsoft.com/v1.0/applications/$AZURE_APP_ID" \
         --body @scripts/oauth2PermissionScopes.json
+
+    # Wait for Azure AD replication of oauth2PermissionScopes before adding preAuthorizedApplications
+    echo "Waiting for Azure AD replication (20 seconds)..."
+    sleep 20
 
     az rest \
         --method PATCH \
