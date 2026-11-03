@@ -1259,9 +1259,10 @@ ws = [
 
 [[package]]
 name = "mem0ai"
-version = "1.0.11"
+version = "2.0.18"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "httpx" },
     { name = "openai" },
     { name = "posthog" },
     { name = "protobuf" },
@@ -1270,9 +1271,9 @@ dependencies = [
     { name = "qdrant-client" },
     { name = "sqlalchemy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/1e/2f8a8cc4b8e7f6126f3367d27dc65eac5cd4ceb854888faa3a8f62a2c0a0/mem0ai-1.0.11.tar.gz", hash = "sha256:ddb803bedc22bd514606d262407782e88df929f6991b59f6972fb8a25cc06001", size = 201758, upload-time = "2026-04-06T11:31:43.695Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/50/42/00de525fc6a4ec4a6bddb180356e7a1587179cfb12e37953075bc7751328/mem0ai-2.0.18.tar.gz", hash = "sha256:7dfd23b119448fe631f2a20c025eeaee2bb2fb28b155e18b791486d2aa01896f", size = 248611, upload-time = "2026-08-11T18:58:00.363Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/b5/f822c94e1b901f8a700af134c2473646de9a7db26364566f6a72d527d235/mem0ai-1.0.11-py3-none-any.whl", hash = "sha256:bcf4d678dc0a4d4e8eccaebe05562eae022fcdc825a0e3095d02f28cf61a5b6d", size = 297138, upload-time = "2026-04-06T11:31:41.716Z" },
+    { url = "https://files.pythonhosted.org/packages/09/eb/733a2c405f2890bbdbb32294f9fa9a4b248f0b7e91378821482caf02c5c4/mem0ai-2.0.18-py3-none-any.whl", hash = "sha256:2c20c78dec21c512e1daf6b7c2cacc306cb34eaab7dd24c2edc81b71386b0a10", size = 344386, upload-time = "2026-08-11T18:57:58.616Z" },
 ]
 
 [[package]]
@@ -1409,7 +1410,7 @@ requires-dist = [
     { name = "lxml", specifier = ">=6.1.0,<7" },
     { name = "lxml-html-clean", specifier = ">=0.4.5" },
     { name = "mcp", specifier = ">=1.30.0,<2" },
-    { name = "mem0ai", specifier = ">=1.0.8,<2" },
+    { name = "mem0ai", specifier = ">=1.0.8,<3" },
     { name = "multidict", specifier = ">=6.9.1,<7" },
     { name = "opentelemetry-exporter-otlp", specifier = ">=1.45.1" },
     { name = "opentelemetry-sdk", specifier = ">=1.45.1" },
@@ -1822,19 +1823,17 @@ wheels = [
 
 [[package]]
 name = "posthog"
-version = "7.0.1"
+version = "7.82.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "backoff" },
     { name = "distro" },
-    { name = "python-dateutil" },
     { name = "requests" },
-    { name = "six" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a2/d4/b9afe855a8a7a1bf4459c28ae4c300b40338122dc850acabefcf2c3df24d/posthog-7.0.1.tar.gz", hash = "sha256:21150562c2630a599c1d7eac94bc5c64eb6f6acbf3ff52ccf1e57345706db05a", size = 126985, upload-time = "2025-11-15T12:44:22.465Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/80/4b/c900da1426070cfd6d861333a559e9b9b8737641ff98d767c40e7feea48e/posthog-7.82.2.tar.gz", hash = "sha256:301d8f6a2d8f582e86e4e6bb87f60a72ce6173b99eeed4b42d572b6e224432a8", size = 882866, upload-time = "2026-11-02T20:37:34.594Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/0c/8b6b20b0be71725e6e8a32dcd460cdbf62fe6df9bc656a650150dc98fedd/posthog-7.0.1-py3-none-any.whl", hash = "sha256:efe212d8d88a9ba80a20c588eab4baf4b1a5e90e40b551160a5603bb21e96904", size = 145234, upload-time = "2025-11-15T12:44:21.247Z" },
+    { url = "https://files.pythonhosted.org/packages/86/fb/dda9c0b9a380023bd6ae5cd5ea44090c523ed51b57fed1c90933e45355b0/posthog-7.82.2-py3-none-any.whl", hash = "sha256:f0e1981e2e08580774051466040f4a217f1926cfebf685a77781b39ec0d434b2", size = 1024145, upload-time = "2026-11-02T20:37:32.717Z" },
 ]
 
 [[package]]
