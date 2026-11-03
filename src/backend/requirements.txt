@@ -573,7 +573,7 @@ typing-inspection==0.4.2
     #   mcp
     #   pydantic
     #   pydantic-settings
-urllib3==2.6.3
+urllib3==2.8.0
     # via
     #   moneta-backend (pyproject.toml)
     #   pyppeteer
