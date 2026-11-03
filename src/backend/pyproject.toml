@@ -12,10 +12,11 @@ dependencies = [
     "azure-ai-agents>=1.2.0b5",
 
     # Azure dependencies
+    "azure-core>=1.38.0",
     "azure-identity>=1.21.0",
     "azure-ai-inference>=1.0.0b9",
     "azure-ai-projects>=2.0.0b3",
-    "python-dotenv>=1.0.1",
+    "python-dotenv>=1.2.2",
     "azure-ai-documentintelligence>=1.0.2",
     "azure-cosmos>=4.9.0",
 
@@ -23,32 +24,46 @@ dependencies = [
     "azure-search-documents>=11.6.0",
 
     # MCP support
-    "mcp>=1.11.0",
+    "mcp>=1.30.0,<2",
 
     # News agent dependencies
     "requests-html>=0.10.0",
     "pandas>=2.2.3",
 
     # Tracing and observability
-    "azure-monitor-opentelemetry-exporter>=1.0.0b34",
-    "opentelemetry-sdk>=1.29.0",
+    "azure-monitor-opentelemetry-exporter>=1.0.0b58",
+    "opentelemetry-sdk>=1.45.1",
     "azure-core-tracing-opentelemetry>=1.0.0b12",
-    "opentelemetry-exporter-otlp>=1.29.0",
+    "opentelemetry-exporter-otlp>=1.45.1",
 
     # Other dependencies
-    "requests>=2.32.4",
+    "requests>=2.33.0",
     "pyyaml>=6.0.2",
     "fastapi>=0.115.12",
     "uvicorn>=0.34.0",
-    "lxml-html-clean>=0.4.1",
+    "lxml-html-clean>=0.4.5",
     "feedparser>=6.0.11",
     
     # Security updates (transitive dependency fixes)
-    "aiohttp>=3.12.14",
-    "protobuf>=5.29.5",
+    "aiohttp>=3.14.4",
+    "anyio>=4.14.2",
+    "certifi>=2026.10.18",
+    "cryptography>=46.0.7",
+    "h2>=4.4.1",
+    "hpack>=4.2.0",
+    "idna>=3.15",
+    "lxml>=6.1.0,<7",
+    "mem0ai>=1.0.8,<2",
+    "multidict>=6.9.1,<7",
+    "protobuf>=5.29.6",
+    "pyasn1>=0.6.5",
+    "pydantic-settings>=2.14.2",
+    "pyjwt>=2.15.0",
+    "python-multipart>=0.0.31",
+    "soupsieve>=2.9.0,<3",
     "starlette>=0.49.1",
-    "urllib3>=2.6.0",
-    "werkzeug>=3.1.4"
+    "urllib3>=2.8.0",
+    "werkzeug>=3.1.9"
 ]
 [tool.uv]
 prerelease = "allow"
